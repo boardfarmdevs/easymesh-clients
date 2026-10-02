@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The labs' Wi-Fi clients</title>
+<meta name="description" content="The Wi-Fi clients of the EasyMesh labs: what one is, how it is built, configured and managed, what it does today, and how it can be made more capable without breaking a room.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&display=swap">
+<link rel="stylesheet" href="style.css">
+<script src="toc.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#client">Skip to the article</a>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" class="arrow"/>
+    </marker>
+    <marker id="ah-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" class="fill-accent"/>
+    </marker>
+    <marker id="ah-radio" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" class="fill-radio"/>
+    </marker>
+    <marker id="ah-good" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" class="fill-good"/>
+    </marker>
+  </defs>
+</svg>
+
+<div class="page">
+<header class="hero">
+  <p class="eyebrow">easymesh-clients</p>
+  <h1>The Wi-Fi clients of the EasyMesh labs</h1>
+  <p class="lead">A mesh is judged by what happens to its clients. Every lab therefore has
+  them: small containers, each with one simulated radio, that join the mesh as a phone or a
+  laptop would. Each of the two optimizer labs keeps a hundred. This page explains what a client
+  is, how it is built, configured and managed, what it does today, and how it can be made
+  to do more without breaking a room that works.</p>
+  <p class="meta"><span>About a 15-minute read</span><a href="https://github.com/boardfarmdevs/easymesh-clients">The repository</a><a href="https://vcpe.dev/easymesh-medium/">The RF medium the clients live on</a><a href="https://vcpe.dev/easymesh-optimizer/">The optimizer that steers them</a><a href="https://mesh.vcpe.dev/">The EasyMesh labs</a></p>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <p>Contents</p>
+  <ol>
+    <li><a href="#client">What a client is</a></li>
+    <li><a href="#build">How one is built</a></li>
+    <li><a href="#configure">How one is configured</a></li>
+    <li><a href="#join">Joining the mesh</a></li>
+    <li><a href="#today">What a client does today</a></li>
+    <li><a href="#rooms">Clients in a room</a></li>
+    <li><a href="#reach">Reaching into a client</a></li>
+    <li><a href="#labs">One idea, four implementations</a></li>
+    <li><a href="#grow">Growing without breaking</a></li>
+    <li><a href="#actions">Asking a client to do something</a></li>
+    <li><a href="#models">Clients that behave like devices</a></li>
+    <li><a href="#home">A home for the clients</a></li>
+    <li><a href="#repository">The repository</a></li>
+  </ol>
+</nav>
+
+<article>
+
+<section id="client">
+<h2>What a client is</h2>
+<p>In the virtual labs nothing is hardware. The gateway and the extenders are containers, and
+their radios are simulated by the Linux kernel (<code>mac80211_hwsim</code>). What one radio
+hears of another is decided by the <a href="https://vcpe.dev/easymesh-medium/">RF medium</a>,
+which knows where everything stands in a room and what the walls are made of.</p>
+<p>A client is the smallest thing that can join such a mesh: a container with <strong>one
+simulated radio</strong>, the standard Linux Wi-Fi client program (<code>wpa_supplicant</code>)
+and an address. To the mesh it is a station like any phone. It associates, authenticates,
+gets an address, answers when it is pinged, and moves to another access point when the mesh
+asks it to.</p>
+<figure class="wide" id="fig-client">
+<div class="fig">
+<svg viewBox="0 0 820 330" role="img" aria-label="A client container holds a supplicant, an address and a control socket on one simulated radio; the radio reaches an access point through the RF medium; the lab reaches into the container from the VM host.">
+  <rect class="box-soft" x="16" y="14" width="788" height="52" rx="10"/>
+  <text class="t" x="34" y="38">The lab VM</text>
+  <text class="s" x="34" y="56">the room service, the labs' scripts and tests run here</text>
+  <path class="ln" d="M150 66 V98" marker-end="url(#ah)"/>
+  <text class="xs" x="160" y="88">reaches in: lxc exec, nsenter</text>
+
+  <rect class="box-accent" x="16" y="102" width="330" height="212" rx="12"/>
+  <text class="t" x="34" y="130">A client</text>
+  <text class="s" x="34" y="150">one container, 128 MB</text>
+  <rect class="box" x="34" y="164" width="294" height="38" rx="8"/>
+  <text class="s" x="48" y="188">wpa_supplicant: one network, obeys steering</text>
+  <rect class="box" x="34" y="210" width="140" height="38" rx="8"/>
+  <text class="s" x="48" y="234">an address</text>
+  <rect class="box" x="188" y="210" width="140" height="38" rx="8"/>
+  <text class="s" x="202" y="234">a control socket</text>
+  <rect class="box-radio" x="34" y="262" width="294" height="38" rx="8"/>
+  <text class="s lbl-radio" x="48" y="286">wlan0: one simulated radio</text>
+
+  <rect class="box-radio" x="420" y="196" width="150" height="104" rx="12"/>
+  <text class="t" x="436" y="226">RF medium</text>
+  <text class="s" x="436" y="248">decides what is</text>
+  <text class="s" x="436" y="266">heard, and how well</text>
+
+  <rect class="box" x="640" y="196" width="164" height="104" rx="12"/>
+  <text class="t" x="656" y="226">Access point</text>
+  <text class="s" x="656" y="248">the gateway or</text>
+  <text class="s" x="656" y="266">an extender</text>
+
+  <path class="ln-radio" d="M328 281 H416" marker-end="url(#ah-radio)" marker-start="url(#ah-radio)"/>
+  <path class="ln-radio" d="M570 248 H636" marker-end="url(#ah-radio)" marker-start="url(#ah-radio)"/>
+  <text class="xs lbl-radio" x="372" y="272" text-anchor="middle">802.11</text>
+  <text class="xs lbl-radio" x="603" y="239" text-anchor="middle">802.11</text>
+  <text class="xs" x="420" y="130">Nothing in the client waits for commands.</text>
+  <text class="xs" x="420" y="148">It has no agent and no API of its own.</text>
+</svg>
+</div>
+<figcaption><b>One client.</b> A container, one radio, the Wi-Fi client program and an address.
+Its only link to the mesh is the radio; the lab's only way in is from the VM that hosts it.</figcaption>
+</figure>
+<p>Clients are in almost every test the labs run. The
+<a href="https://vcpe.dev/easymesh-optimizer/">optimizer</a> exists to move them, the medium
+is measured through them, and a room passes or fails by where its clients end up. Yet until
+now they were described nowhere: each lab grew its own.</p>
+</section>
+
+<section id="build">
+<h2>How one is built</h2>
+<p>A client starts from an image that the lab builds once. In the RDK lab it is Alpine Linux
+with two packages and one file added:</p>
+<ul>
+  <li><code>iw</code>, the kernel's Wi-Fi tool, and the supplicant package for its libraries
+  and <code>wpa_cli</code>;</li>
+  <li>the lab's own build of <code>wpa_supplicant</code> 2.10;</li>
+  <li>a start script that connects whenever the container starts.</li>
+</ul>
+<p>The lab builds its own supplicant for one reason. A mesh steers a client by sending it a
+<em>BSS Transition Management</em> (BTM) request, part of 802.11v: "please move to this access
+point". The supplicant that Alpine ships is built without the code that handles it, so it
+receives the request and stays where it is, without answering. A client that cannot be steered
+is of no use to a steering lab. The lab's build switches that code on
+(<code>CONFIG_WNM</code>), and carries one small patch so a steer also finds a network whose
+name is hidden.</p>
+<p>Each client then gets a radio from the VM's pool of simulated radios, handed over as its
+<code>wlan0</code>, and a limit of 128 MB of memory and one CPU. A hundred of them fit next
+to a gateway and four extenders in one lab VM.</p>
+<aside class="note"><span class="t">Why containers</span>
+<p>A simulated radio belongs to one network namespace. A container is the cheapest thing that
+has one, with its own address, routes and processes, so each client is a separate device to
+the mesh and to the tools that look at it.</p></aside>
+</section>
+
+<section id="configure">
+<h2>How one is configured</h2>
+<p>A client knows one network. Three choices decide how it joins, and they are all it differs
+in from the client next to it.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Choice</th><th>Values</th><th>What it means</th></tr></thead>
+<tbody>
+<tr><td>Network</td><td><code>private_ssid</code>, <code>iot_ssid</code></td><td>the home network, or the IoT network, which is not announced and has to be asked for by name</td></tr>
+<tr><td>Security</td><td>open, WPA2, SAE</td><td>SAE (WPA3) comes with protected management frames, and is required on 6 GHz</td></tr>
+<tr><td>Band</td><td>any, 2.4, 5 or 6 GHz</td><td>a band-limited client scans and joins only on that band's frequencies</td></tr>
+</tbody></table></div>
+<p>In the RDK lab one command creates a client, and another creates the whole pool:</p>
+<pre><code>gen/wlan-client.sh -i 7 --band 5 up private_ssid &lt;passphrase&gt;   # one client: wlan-client-007
+gen/wlan-client-pool.sh plan                                      # what the pool would create
+gen/wlan-client-pool.sh up                                        # all 100</code></pre>
+<p>The pool is always the same hundred: fifty on the home network and fifty on the IoT
+network. Nearly all are WPA2 on any band; one is limited to 2.4 GHz and one joins on 6 GHz
+with SAE. A room does not create clients. It chooses which of the hundred are online.</p>
+<p>What a client was created as is written on its container, as four keys, so a tool can
+ask instead of guessing from a MAC address:</p>
+<pre><code>user.easymesh.cohort     private
+user.easymesh.ssid       private_ssid
+user.easymesh.security   wpa2
+user.easymesh.band       5</code></pre>
+</section>
+
+<section id="join">
+<h2>Joining the mesh</h2>
+<p>Starting a client is not the same as having one. The labs accept a client only after it
+has passed four gates, in order, each with a time limit.</p>
+<figure class="wide" id="fig-join">
+<div class="fig">
+<svg viewBox="0 0 820 190" role="img" aria-label="Four gates: the radio is in the container, the client is associated, it has an address, and the controller lists it.">
+  <rect class="box" x="16" y="30" width="176" height="120" rx="12"/>
+  <text class="xs mono" x="32" y="56">1</text>
+  <text class="t" x="32" y="80">Radio</text>
+  <text class="s" x="32" y="102">wlan0 is in the</text>
+  <text class="s" x="32" y="120">container and up</text>
+
+  <rect class="box" x="220" y="30" width="176" height="120" rx="12"/>
+  <text class="xs mono" x="236" y="56">2</text>
+  <text class="t" x="236" y="80">Association</text>
+  <text class="s" x="236" y="102">joined, on the band</text>
+  <text class="s" x="236" y="120">that was asked for</text>
+
+  <rect class="box" x="424" y="30" width="176" height="120" rx="12"/>
+  <text class="xs mono" x="440" y="56">3</text>
+  <text class="t" x="440" y="80">Address</text>
+  <text class="s" x="440" y="102">an IPv4 address</text>
+  <text class="s" x="440" y="120">on wlan0</text>
+
+  <rect class="box-good" x="628" y="30" width="176" height="120" rx="12"/>
+  <text class="xs mono" x="644" y="56">4</text>
+  <text class="t" x="644" y="80">Known</text>
+  <text class="s" x="644" y="102">the controller lists</text>
+  <text class="s" x="644" y="120">it as associated</text>
+
+  <path class="ln" d="M192 90 H216" marker-end="url(#ah)"/>
+  <path class="ln" d="M396 90 H420" marker-end="url(#ah)"/>
+  <path class="ln" d="M600 90 H624" marker-end="url(#ah)"/>
+  <text class="xs" x="16" y="176">A client that stops at a gate is retried, then reported. It is never counted as present.</text>
+</svg>
+</div>
+<figcaption><b>Four gates.</b> The last one is the one that matters to a mesh lab: a client
+that is associated but unknown to the controller cannot be steered.</figcaption>
+</figure>
+<p>The fourth gate exists because of a real failure. Right after a client associates, the
+controller learns what the client can do in a short exchange. If that exchange is lost, the
+client is associated and yet missing from the controller's model until it roams. So the lab
+accepts neither a client nor a pool until the controller lists it.</p>
+<p>The address comes from the gateway's DHCP server in the RDK lab, where the client asks
+once at start. The prplMesh lab gives each client a fixed address instead and runs no DHCP.</p>
+</section>
+
+<section id="today">
+<h2>What a client does today</h2>
+<p>Less than a phone, and that is deliberate so far. The lab's client is the easiest client
+an optimizer can meet.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>It does</th><th>It does not</th></tr></thead>
+<tbody>
+<tr><td>join its one network and keep trying</td><td>choose between networks</td></tr>
+<tr><td>answer a ping</td><td>send any traffic by itself</td></tr>
+<tr><td>move when the mesh asks, every time it can see the target</td><td>refuse, ignore or delay a request</td></tr>
+<tr><td>stay where it is while the signal fades</td><td>look for a better access point by itself</td></tr>
+<tr><td>behave exactly like the other ninety-nine</td><td>resemble any particular kind of device</td></tr>
+</tbody></table></div>
+<p>The fourth row surprises people. A real phone scans in the background and roams when its
+signal drops. The lab's client has no background scanning configured, so it reconsiders its
+access point only when something else makes it scan: a steering request, a disconnect, or the
+room asking for a scan. Carry it across the room and it holds on until the mesh moves it.</p>
+<aside class="note limit"><span class="t">What that means for results</span>
+<p>An optimizer that does well here has been tested against obedient clients that never act
+on their own. Real networks have clients that roam early, clients that refuse, and devices
+that know one band. A good result in the lab is necessary, and not yet sufficient.</p></aside>
+</section>
+
+<section id="rooms">
+<h2>Clients in a room</h2>
+<p>A room is a floor plan with a mesh and clients in it, played over time. Its description, a
+<em>world</em>, never names a container. It names <strong>roles</strong>, such as
+<code>sta_static_04</code> for a client that stays put and <code>sta_mobile_02</code> for one
+that walks. Each lab keeps a small file that binds roles to its own containers, which is how
+one world runs on both labs.</p>
+<figure class="wide" id="fig-room">
+<div class="fig">
+<svg viewBox="0 0 820 300" role="img" aria-label="A world names a role with a presence and a position; a lab's bindings map the role to a container; the medium turns the position into what the client's radio hears.">
+  <rect class="box" x="16" y="24" width="230" height="150" rx="12"/>
+  <text class="t" x="32" y="52">World</text>
+  <text class="xs" x="32" y="70">the same on both labs</text>
+  <text class="s mono" x="32" y="100">sta_mobile_02</text>
+  <text class="s" x="32" y="122">present: yes</text>
+  <text class="s" x="32" y="142">position: 7.5 m, 3.0 m</text>
+  <text class="xs" x="32" y="162">and where it walks to, and when</text>
+
+  <rect class="box" x="296" y="24" width="230" height="150" rx="12"/>
+  <text class="t" x="312" y="52">Bindings</text>
+  <text class="xs" x="312" y="70">one file per lab</text>
+  <text class="s mono" x="312" y="100">sta_mobile_02</text>
+  <text class="s mono" x="312" y="122">→ wlan-client-011</text>
+  <text class="s mono" x="312" y="142">→ prpl-client-04</text>
+  <text class="xs" x="312" y="162">RDK lab, prplMesh lab</text>
+
+  <rect class="box-accent" x="576" y="24" width="228" height="150" rx="12"/>
+  <text class="t" x="592" y="52">Client</text>
+  <text class="xs" x="592" y="70">a container of the pool</text>
+  <text class="s" x="592" y="100">brought online, or</text>
+  <text class="s" x="592" y="120">paused if the room</text>
+  <text class="s" x="592" y="140">does not use it</text>
+
+  <path class="ln" d="M246 99 H292" marker-end="url(#ah)"/>
+  <path class="ln" d="M526 99 H572" marker-end="url(#ah)"/>
+
+  <rect class="box-radio" x="16" y="214" width="788" height="66" rx="12"/>
+  <text class="t" x="32" y="242">RF medium</text>
+  <text class="s" x="32" y="264">turns the position into what the client's radio hears. The client is not told that it moved.</text>
+  <path class="ln-radio" d="M131 174 V210" marker-end="url(#ah-radio)"/>
+  <path class="ln-radio" d="M690 210 V178" marker-end="url(#ah-radio)"/>
+  <text class="xs lbl-radio" x="141" y="198">position</text>
+  <text class="xs lbl-radio" x="700" y="198">signal</text>
+</svg>
+</div>
+<figcaption><b>A role, a binding, a container.</b> Movement happens in the medium. The client
+runs nothing to move; its radio simply hears a different room.</figcaption>
+</figure>
+<p>A room manages its clients in three ways.</p>
+<ul>
+  <li><strong>Presence.</strong> The whole pool is online to begin with. A client the room
+  does not use is disconnected and noted as paused, so that it is reconnected when the room
+  ends, or after an interruption. The default room keeps twenty clients online; the largest
+  use fifty.</li>
+  <li><strong>Bands.</strong> A world may limit up to four of its clients to bands, for
+  band-steering rooms. The room saves the client's own settings first and writes them back
+  afterwards.</li>
+  <li><strong>Traffic.</strong> A world may give phases of load. The room runs
+  <code>ping</code> and <code>iperf3</code> for the client, from the lab VM, inside the
+  client's network.</li>
+</ul>
+</section>
+
+<section id="reach">
+<h2>Reaching into a client</h2>
+<p>A client has no agent, so everything that wants something from it goes in from the lab VM.
+Four groups of tools do, each with its own code.</p>
+<figure class="wide" id="fig-reach">
+<div class="fig">
+<svg viewBox="0 0 820 300" role="img" aria-label="The labs' scripts, the room service, the optimizer's band scanner and the medium's qualification tools all enter a client from the lab VM and use the supplicant's control tool, the kernel's Wi-Fi tool, ping and iperf3.">
+  <rect class="box" x="16" y="20" width="240" height="52" rx="10"/>
+  <text class="s" x="30" y="42">Each lab's scripts and tests</text>
+  <text class="xs" x="30" y="60">create, start, check</text>
+  <rect class="box" x="16" y="88" width="240" height="52" rx="10"/>
+  <text class="s" x="30" y="110">The room service</text>
+  <text class="xs" x="30" y="128">presence, bands, traffic, link readings</text>
+  <rect class="box" x="16" y="156" width="240" height="52" rx="10"/>
+  <text class="s" x="30" y="178">The optimizer's band scanner</text>
+  <text class="xs" x="30" y="196">what the client hears on other bands</text>
+  <rect class="box" x="16" y="224" width="240" height="52" rx="10"/>
+  <text class="s" x="30" y="246">The medium's qualification</text>
+  <text class="xs" x="30" y="264">does the simulated RF behave as it should</text>
+
+  <rect class="box-soft" x="330" y="20" width="150" height="256" rx="12"/>
+  <text class="t" x="405" y="132" text-anchor="middle">From the VM</text>
+  <text class="s mono" x="405" y="158" text-anchor="middle">lxc exec</text>
+  <text class="s mono" x="405" y="178" text-anchor="middle">nsenter</text>
+
+  <rect class="box-accent" x="554" y="20" width="250" height="256" rx="12"/>
+  <text class="t" x="572" y="48">In the client's network</text>
+  <rect class="box" x="572" y="62" width="214" height="44" rx="8"/>
+  <text class="s mono" x="586" y="82">wpa_cli</text>
+  <text class="xs" x="586" y="98">state, disconnect, reconnect, settings</text>
+  <rect class="box" x="572" y="114" width="214" height="44" rx="8"/>
+  <text class="s mono" x="586" y="134">iw</text>
+  <text class="xs" x="586" y="150">access point, frequency, signal, scans</text>
+  <rect class="box" x="572" y="166" width="214" height="44" rx="8"/>
+  <text class="s mono" x="586" y="186">ping</text>
+  <text class="xs" x="586" y="202">is the link alive, over wlan0</text>
+  <rect class="box" x="572" y="218" width="214" height="44" rx="8"/>
+  <text class="s mono" x="586" y="238">iperf3</text>
+  <text class="xs" x="586" y="254">load, to the gateway</text>
+
+  <path class="ln" d="M256 46 H326" marker-end="url(#ah)"/>
+  <path class="ln" d="M256 114 H326" marker-end="url(#ah)"/>
+  <path class="ln" d="M256 182 H326" marker-end="url(#ah)"/>
+  <path class="ln" d="M256 250 H326" marker-end="url(#ah)"/>
+  <path class="ln-accent" d="M480 148 H550" marker-end="url(#ah-accent)"/>
+</svg>
+</div>
+<figcaption><b>One way in, many callers.</b> The channel is the same for all of them. What
+each asks, and how it reads the answer, is written again in every caller.</figcaption>
+</figure>
+<p>There are two ways through that door, and the difference decides what a client image must
+contain. <code>lxc exec</code> runs a program that is <em>in the client</em>. Entering only the
+client's network (<code>nsenter</code>) runs a program that is <em>in the lab VM</em>, with
+the client's radio and address. The room's traffic already works the second way, which is why
+the RDK client needs no <code>iperf3</code> of its own.</p>
+</section>
+
+<section id="labs">
+<h2>One idea, four implementations</h2>
+<p>Every lab made the client it needed. They agree on the idea and differ in nearly every
+detail.</p>
+<div class="table-wrap"><table>
+<thead><tr><th></th><th>RDK EasyMesh</th><th>prplMesh</th><th>OpenSync lab</th><th>Protocol lab</th></tr></thead>
+<tbody>
+<tr><td>A client is</td><td>a container</td><td>a container</td><td>a container</td><td>a network namespace</td></tr>
+<tr><td>Radio</td><td>simulated</td><td>simulated</td><td>simulated</td><td>a real USB adapter</td></tr>
+<tr><td>Image</td><td>Alpine</td><td>Ubuntu 22.04</td><td>Alpine</td><td>none</td></tr>
+<tr><td>Supplicant</td><td>own build, obeys steering</td><td>own build, obeys steering</td><td>the package: cannot be steered</td><td>the package</td></tr>
+<tr><td>Address</td><td>DHCP, once</td><td>fixed</td><td>DHCP, renewed</td><td>fixed</td></tr>
+<tr><td>How many</td><td class="num">100</td><td class="num">100</td><td>one per pod</td><td class="num">2</td></tr>
+<tr><td>Tools inside</td><td><code>iw</code>, <code>wpa_cli</code></td><td>also <code>iperf3</code>, <code>tcpdump</code>, Python</td><td><code>iw</code>, <code>wpa_cli</code></td><td>the VM's</td></tr>
+<tr><td>Checked as</td><td>a station the controller knows</td><td>a station the controller knows</td><td>a device on a home network: lease, DNS, internet</td><td>a station over the air</td></tr>
+</tbody></table></div>
+<p>The two optimizer labs are close: the same hundred clients in the same two halves, the
+same supplicant version, the same roles in a room. The OpenSync lab's client answers a
+different question, whether a device behind a pod gets a working home network, and is pinned
+to its pod. The Protocol lab's clients are real radios in the same room as real extenders.</p>
+<p>The exact differences, down to configuration options, are in
+<a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/docs/reference/lab-clients.md">the reference</a>.</p>
+</section>
+
+<section id="grow">
+<h2>Growing without breaking</h2>
+<aside class="note"><span class="t">From here on: proposals</span>
+<p>Everything above exists. Everything below is proposed, and none of it is built.</p></aside>
+<p>The clients could do more in two directions: do something when asked, and behave like a
+kind of device. Both are worth having, and both could easily disturb rooms that pass today.
+So one rule comes first:</p>
+<p><strong>A client nobody asks anything of is today's client.</strong> No existing room,
+world, suite or lab script changes. Each step adds something, and a lab takes it when it wants
+it.</p>
+<figure class="wide" id="fig-steps">
+<div class="fig">
+<svg viewBox="0 0 820 270" role="img" aria-label="Five levels: today's client, then a written contract, named actions, client models and behaviours, each resting on the one before.">
+  <rect class="box-good" x="16" y="196" width="788" height="54" rx="10"/>
+  <text class="t" x="32" y="220">Today</text>
+  <text class="s" x="32" y="239">associates, holds an address, answers pings, obeys steering</text>
+  <text class="xs lbl-good" x="788" y="228" text-anchor="end">exists</text>
+
+  <rect class="box dash" x="96" y="146" width="708" height="44" rx="10"/>
+  <text class="t" x="112" y="166">1 · Contract</text>
+  <text class="s" x="250" y="166">what every client provides, written down and checked</text>
+  <text class="xs" x="112" y="182">changes nothing in a client</text>
+
+  <rect class="box dash" x="176" y="96" width="628" height="44" rx="10"/>
+  <text class="t" x="192" y="116">2 · Actions</text>
+  <text class="s" x="320" y="116">ask a client to do something, with one command</text>
+  <text class="xs" x="192" y="132">changes nothing in a client</text>
+
+  <rect class="box dash" x="256" y="46" width="548" height="44" rx="10"/>
+  <text class="t" x="272" y="66">3 · Models</text>
+  <text class="s" x="392" y="66">clients that behave like kinds of devices</text>
+  <text class="xs" x="272" y="82">a supplicant option; one optional field in a world</text>
+
+  <rect class="box dash" x="336" y="4" width="468" height="36" rx="10"/>
+  <text class="t" x="352" y="27">4 · Behaviours</text>
+  <text class="s" x="500" y="27">clients that send traffic by themselves</text>
+</svg>
+</div>
+<figcaption><b>Four steps on what exists.</b> Each works without the one above it. Only the
+third touches what runs inside a client.</figcaption>
+</figure>
+<p>The first step is the dullest and the most useful. The two optimizer labs' clients have
+drifted apart because nothing said what a client must provide. A short contract (the radio is
+<code>wlan0</code>, <code>wpa_cli</code> works, the address is on <code>wlan0</code>, what it
+was created as is written on the container) lets one tool work on both. Everything beyond
+that runs from the lab VM inside the client's network, so no client image ever needs a tool
+added.</p>
+</section>
+
+<section id="actions">
+<h2>Asking a client to do something</h2>
+<p>Today, getting two clients to send traffic to each other means knowing two container
+names, two addresses, which lab has <code>iperf3</code> where, and the right flags. The
+proposal is a small vocabulary instead: one command on the lab VM that takes a client by its
+container name, or by its role in the room.</p>
+<pre><code>em-clients status sta_mobile_02                              # where is it, how well does it hear
+em-clients scan   sta_mobile_02                              # what else can it hear
+em-clients iperf  sta_mobile_01 sta_static_03 --seconds 10   # traffic between two clients
+em-clients roam   sta_mobile_02 &lt;bssid&gt;                      # the client moves by itself</code></pre>
+<figure class="wide" id="fig-iperf">
+<div class="fig">
+<svg viewBox="0 0 820 250" role="img" aria-label="Traffic between two clients goes from the first client over the air to an access point and over the air again to the second client; the command starts both ends from the lab VM.">
+  <rect class="box-soft" x="230" y="14" width="360" height="46" rx="10"/>
+  <text class="s mono" x="410" y="42" text-anchor="middle">em-clients iperf A B</text>
+  <path class="ln" d="M270 60 C 200 90, 130 100, 118 126" marker-end="url(#ah)"/>
+  <path class="ln" d="M550 60 C 620 90, 690 100, 702 126" marker-end="url(#ah)"/>
+  <text class="xs" x="220" y="41" text-anchor="end">starts the sender</text>
+  <text class="xs" x="600" y="41">starts the receiver</text>
+
+  <rect class="box-accent" x="16" y="130" width="204" height="96" rx="12"/>
+  <text class="t" x="32" y="158">Client A</text>
+  <text class="s" x="32" y="180">sends, from its own</text>
+  <text class="s" x="32" y="198">Wi-Fi address</text>
+
+  <rect class="box" x="308" y="130" width="204" height="96" rx="12"/>
+  <text class="t" x="324" y="158">Access point</text>
+  <text class="s" x="324" y="180">forwards between</text>
+  <text class="s" x="324" y="198">its clients</text>
+
+  <rect class="box-accent" x="600" y="130" width="204" height="96" rx="12"/>
+  <text class="t" x="616" y="158">Client B</text>
+  <text class="s" x="616" y="180">receives, on its own</text>
+  <text class="s" x="616" y="198">Wi-Fi address</text>
+
+  <path class="ln-radio" d="M220 178 H304" marker-end="url(#ah-radio)"/>
+  <path class="ln-radio" d="M512 178 H596" marker-end="url(#ah-radio)"/>
+  <text class="xs lbl-radio" x="262" y="168" text-anchor="middle">air</text>
+  <text class="xs lbl-radio" x="554" y="168" text-anchor="middle">air</text>
+</svg>
+</div>
+<figcaption><b>Two clients, one command.</b> Both ends are started from the lab VM, inside
+each client's network. On one radio the traffic uses the air twice, so the figure it gives is
+not a client-to-gateway figure.</figcaption>
+</figure>
+<h3>No agent, and no wire</h3>
+<p>The obvious design is a small service in each client, listening on a wired interface. It
+is not needed, and it would cost something. The lab VM can already run anything in any client;
+an agent could do nothing more. A wired interface with an address gives the client a second
+way out, and a Wi-Fi client with a second way out can send traffic around the Wi-Fi it is
+there to test. The OpenSync lab's client and the Protocol lab's clients have no wire for
+exactly that reason.</p>
+<p>Someone who is not on the lab VM, a remote developer or a browser, would reach the same
+actions through the room service, which then also knows what was done.</p>
+<h3>Not disturbing a room</h3>
+<p>A room owns its clients while it runs, and its checks assume nobody else touched them.
+Actions therefore come in three classes.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Class</th><th>Examples</th><th>While a room runs</th></tr></thead>
+<tbody>
+<tr><td>Read</td><td>list, status, scan</td><td>always allowed</td></tr>
+<tr><td>Traffic</td><td>ping, iperf</td><td>allowed, unless the room is using that client for its own traffic</td></tr>
+<tr><td>State</td><td>disconnect, roam, band, model</td><td>recorded in the room's journal; the run is marked <em>touched by hand</em>, and its checks no longer count as a pass</td></tr>
+</tbody></table></div>
+<p>The room's description, and the configurator that compiles it, are not involved at all.
+That is what keeps this step small.</p>
+</section>
+
+<section id="models">
+<h2>Clients that behave like devices</h2>
+<p>The harder questions for an optimizer need clients that are not all alike. Does it stop
+steering a client that keeps refusing? Does it fight a phone that roams by itself? Does it
+leave a 2.4 GHz plug alone? A <em>client model</em> is a named set of behaviours that a lab
+client takes on when a room loads.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Model</th><th>Resembles</th><th>In short</th></tr></thead>
+<tbody>
+<tr><td><code>baseline</code></td><td>today's lab client</td><td>never looks around; follows every request</td></tr>
+<tr><td><code>eager-roamer</code></td><td>phones and tablets</td><td>looks for a better access point early; follows steering</td></tr>
+<tr><td><code>sticky</code></td><td>laptops at default settings</td><td>looks late, wants a large margin, accepts only a much better offer</td></tr>
+<tr><td><code>btm-refuser</code></td><td>clients with 802.11v off or broken</td><td>refuses, or ignores, every request</td></tr>
+<tr><td><code>iot-2g4</code></td><td>plugs, cameras, sensors</td><td>2.4 GHz only; never roams while associated</td></tr>
+<tr><td><code>band-loyal</code></td><td>devices that hold on to 5 or 6 GHz</td><td>refuses a move to 2.4 GHz</td></tr>
+</tbody></table></div>
+<p>A model is data. The same container becomes an eager roamer or a plug when a room loads,
+and goes back afterwards. Part of it is plain supplicant configuration (bands, whether 802.11v
+is advertised, background scanning). The rest, such as refusing a request or wanting a larger
+margin, needs a small patch that turns the supplicant's fixed decisions into options whose
+defaults are today's behaviour.</p>
+<p>These are archetypes. A model resembles a class of devices and says so; it does not
+emulate one phone's firmware. A world that names no model gets <code>baseline</code>
+everywhere and compiles to the same bytes as before. The full proposal, with the sources for
+each value and the checks that prove a model behaves as it says, is
+<a href="https://github.com/boardfarmdevs/easymesh-labs/blob/main/docs/proposals/client-models.md">in the umbrella repository</a>.</p>
+</section>
+
+<section id="home">
+<h2>A home for the clients</h2>
+<p>The medium and the optimizer each moved out of the labs into a repository of their own,
+which both labs now pin. That worked because both labs already ran the same code. The clients
+are not there yet: they are separate implementations, tied to each lab's way of handing out
+radios and of waiting for its own controller. Moving them today would mean making them the
+same and moving them in one go, and every suite of both labs would have to run again.</p>
+<p>So this repository starts with what is new, and takes in what exists only when there is a
+reason.</p>
+<div class="table-wrap"><table>
+<thead><tr><th></th><th>What is shared</th><th>When</th><th>What it disturbs</th></tr></thead>
+<tbody>
+<tr><td class="num">1</td><td>these documents</td><td>now</td><td>nothing</td></tr>
+<tr><td class="num">2</td><td>the contract's check, the actions</td><td>when first wanted</td><td>nothing: a lab opts in</td></tr>
+<tr><td class="num">3</td><td>the catalog of models</td><td>with client models</td><td>nothing in existing rooms</td></tr>
+<tr><td class="num">4</td><td>one supplicant build</td><td>with the patch for models</td><td>both labs rebuild their client image, which the patch requires anyway</td></tr>
+<tr><td class="num">5</td><td>the image and how a client is created</td><td>after that, one lab at a time</td><td>one full qualification per lab</td></tr>
+</tbody></table></div>
+<p>The reasoning, the alternatives and the experiments that come first are in
+<a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/docs/proposals/more-capable-clients.md">the proposal</a>.</p>
+</section>
+
+<section id="repository">
+<h2>The repository</h2>
+<p>For now it holds documents, and no client code. Each lab still creates its own clients.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Part</th><th>What it is</th></tr></thead>
+<tbody>
+<tr><td><code>site/</code></td><td>this page</td></tr>
+<tr><td><code>docs/reference/</code></td><td><a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/docs/reference/lab-clients.md">the clients of each lab</a>, as they are built: image, supplicant, configuration, address, pool, start gates, and everything that reaches into a client</td></tr>
+<tr><td><code>docs/proposals/</code></td><td><a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/docs/proposals/more-capable-clients.md">more capable clients</a>: the contract, the actions, models and behaviours, and when the code is worth sharing</td></tr>
+</tbody></table></div>
+<p>Where the clients are created today:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Lab</th><th>Scripts</th><th>Clients</th></tr></thead>
+<tbody>
+<tr><td><a href="https://vcpe.dev/meta-cmf-bananapi-vcpe/">RDK EasyMesh</a></td><td><code>gen/wlan-client.sh</code>, <code>gen/wlan-client-pool.sh</code></td><td><code>wlan-client</code>, <code>wlan-client-001</code> to <code>-099</code></td></tr>
+<tr><td><a href="https://vcpe.dev/prplmesh-lab/">prplMesh</a></td><td><code>scripts/radio-lab.sh</code>, <code>scripts/container/setup-client.sh</code></td><td><code>prpl-client-01</code> to <code>-100</code></td></tr>
+<tr><td><a href="https://vcpe.dev/opensync-lab/">OpenSync lab</a></td><td><code>guest/80-client.sh</code></td><td>one per pod</td></tr>
+<tr><td><a href="https://vcpe.dev/easymesh-lab/">Protocol lab</a></td><td><code>tools/wifi_clients.py</code></td><td>two USB adapters</td></tr>
+</tbody></table></div>
+<footer class="end">
+<p>Part of the <a href="https://mesh.vcpe.dev/">EasyMesh labs</a>. The clients live on the
+<a href="https://vcpe.dev/easymesh-medium/">RF medium</a> and are steered by the
+<a href="https://vcpe.dev/easymesh-optimizer/">optimizer</a>.</p>
+</footer>
+</section>
+
+</article>
+</div>
+</body>
+</html>
