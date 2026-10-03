@@ -1,0 +1,75 @@
+# What can be checked without radios: the resolver's rules, every model resolving, the
+# bench's code compiling, the build script, and the patched client building from the
+# pinned tarballs. The bench itself needs mac80211_hwsim, which GitHub's runners cannot
+# load; it runs on a lab host's VM (bench/README.md).
+name: checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  models:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: The resolver's unit tests
+        run: python3 -m unittest discover -s tests -v
+      - name: Every model and behaviour resolves
+        run: |
+          python3 - <<'EOF'
+          import sys
+          sys.path.insert(0, ".")
+          from clientmodel import list_models, resolve
+          names = list_models()
+          for name in names["models"]:
+              resolve(name)
+          for behaviour in names["behaviours"]:
+              resolve("pixel" + behaviour)
+          print(len(names["models"]), "models,", len(names["behaviours"]), "behaviours")
+          EOF
+      - name: The bench's code compiles
+        run: python3 -m py_compile bench/*.py
+      - name: The build script
+        run: |
+          bash -n supplicant/build.sh
+          shellcheck -x supplicant/build.sh
+
+  client:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q build-essential pkg-config libnl-3-dev libnl-genl-3-dev \
+            libnl-route-3-dev libssl-dev libdbus-1-dev
+      - name: wpa_supplicant 2.12 with the patch series, and hostapd 2.12
+        run: supplicant/build.sh --output build
+      - name: The new options parse
+        run: |
+          cat > /tmp/model.conf <<'EOF'
+          ctrl_interface=/tmp/wpa
+          btm_policy=1
+          btm_min_margin=0
+          network={
+              ssid="lab"
+              psk="passphrase"
+              bgscan="model:10:-75:120:70:-70:-75:10:-60:-75"
+              roam_margin=10
+              roam_margin_active=8
+              roam_active_pps=10
+              roam_trigger=-75
+              disable_vht=1
+              disable_he=1
+          }
+          EOF
+          # parses the configuration and stops at the missing interface
+          ./build/wpa_supplicant -c /tmp/model.conf -i none -D nl80211 2>&1 | tee /tmp/out.txt || true
+          ! grep -E "unknown (network )?field|failed to parse" /tmp/out.txt
+      - name: Provenance
+        run: cat build/build.env

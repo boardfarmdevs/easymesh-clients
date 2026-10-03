@@ -139,7 +139,11 @@ roaming in `iwd.config(5)`:
 | `DisableRoamingScan` | false | no scans for roaming decisions |
 
 Its source (`src/station.c`) requests an 802.11k neighbor report before a roam scan when the
-AP supports it, and follows AP-directed roaming (802.11v BSS Transition Management).
+AP supports it, and follows AP-directed roaming (802.11v BSS Transition Management). On the
+low-signal event it arms a 5 s timer and roams when it fires. It **sends no BSS Transition
+Management Response**: 3.12's source has no code for one, and on the bench it moved on a
+request without answering it. Without a neighbor report naming another channel it scans
+every channel it may use, and it has no scan timeout.
 
 ## 7. wpa_supplicant, the lab's client today
 
@@ -158,12 +162,21 @@ ChangeLog lists "improve BSS transition management support". In 2.12:
   `<short>` seconds below the threshold (with a 4 dB hysteresis on the kernel's signal
   monitor) and every `<long>` seconds above it; the optional fourth field sends a BSS
   Transition Management query to the AP instead of a plain scan.
-- **BTM:** followed whenever a candidate is acceptable; refused only when none is. A refusal
-  on demand (`reject_btm_req_reason`) exists only in a build with `CONFIG_TESTING_OPTIONS`.
-  `disable_btm=1` stops advertising 802.11v.
-- **Defaults in its build configuration:** `CONFIG_WNM`, `CONFIG_MBO` and
-  `CONFIG_BGSCAN_SIMPLE` are on in 2.12's `defconfig`. The RDK lab's own build has WNM but
-  neither MBO nor background scanning.
+- **BTM** (`wnm_scan_process()` in `wpa_supplicant/wnm_sta.c`, seen on the bench): with the
+  Abridged bit set, the usual steering request, an AP not in the candidate list is no
+  candidate, the current one included, so the client follows the request. Without it, the
+  current AP stays a candidate: the client picks among the candidates and the current AP by
+  its own ranking, from scan results it re-uses when they are under 10 s old, then applies
+  its roaming rules, and when that leaves it where it is, **accepts with the current AP as its
+  target** and stays. With Disassociation
+  Imminent it never refuses, and it leaves even for a weaker AP. A refusal on demand
+  (`reject_btm_req_reason`) exists only in a build with `CONFIG_TESTING_OPTIONS` and MBO.
+  `disable_btm=1` stops advertising 802.11v and ignores requests.
+- **Defaults in its build configuration:** 2.12's `defconfig` has `CONFIG_BGSCAN_SIMPLE`,
+  which brings in `CONFIG_WNM`; it does **not** have `CONFIG_MBO` (corrected 3 October 2026;
+  this text first said it had). The RDK lab's own build has WNM but neither MBO nor
+  background scanning.
+- **The simple background scan on beacon loss** does nothing: its handler is empty.
 - **Signal poll** returns the station's transmitted and received packet counts, enough to
   tell a client that is passing traffic from an idle one.
 

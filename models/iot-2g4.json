@@ -1,0 +1,29 @@
+{
+  "schema": "client-model/2",
+  "id": "iot-2g4",
+  "title": "2.4 GHz device",
+  "resembles": [
+    "a 2.4 GHz-only device: camera, plug, speaker"
+  ],
+  "base": "baseline",
+  "capabilities": {
+    "bands": [
+      "2.4"
+    ],
+    "phy_max": "HT",
+    "btm": false,
+    "neighbor_reports": false,
+    "fast_transition": false
+  },
+  "sources": [
+    {
+      "fields": [
+        "capabilities"
+      ],
+      "source": "the device class",
+      "read": "2026-10-03",
+      "confidence": "synthesized",
+      "note": "never looks while associated: no background scanning, as baseline"
+    }
+  ]
+}

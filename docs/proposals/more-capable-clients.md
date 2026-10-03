@@ -2,8 +2,9 @@
 
 [Documents](../README.md)
 
-**Status:** Proposal. Nothing here is implemented, and nothing here needs to be decided at
-once. **Prepared:** 2 October 2026.
+**Status:** Proposal. Step 3 (models) is implemented in this repository and checked on a
+bench, 3 October 2026; no lab uses it yet. Nothing else here is implemented, and nothing
+here needs to be decided at once. **Prepared:** 2 October 2026.
 
 What the clients are today is in [The clients of each lab](../reference/lab-clients.md).
 
@@ -147,7 +148,7 @@ document ([documented roaming](../reference/documented-roaming.md)), and a
 
 | Model | Resembles | In short |
 | --- | --- | --- |
-| `baseline` | today's lab client | wpa_supplicant 2.12; never scans by itself; follows every BTM request |
+| `baseline` | today's lab client | wpa_supplicant 2.12; never scans by itself; follows a steering request (one with the Abridged bit) |
 | `iphone`, `ipad` | iPhone, iPad | look below −70 dBm; move for 8 dB with traffic, 12 dB idle |
 | `mac` | Mac with Apple silicon | look below −75 dBm; move for 12 dB |
 | `pixel` | Google Pixel | look below −75 dBm or on a busy AP; move for 10 dB |
@@ -168,6 +169,11 @@ How it fits here:
   question, and both labs then read one catalog.
 - The models need a small patch series against wpa_supplicant 2.12, in one build both labs
   use. That build is the first code worth sharing (section 10).
+- **Built, 3 October 2026:** the build ([supplicant/](../../supplicant/README.md)), the
+  catalog and its resolver ([models/](../../models/README.md)) and the bench
+  ([bench/](../../bench/README.md)) are in this repository, with every model's
+  [results](../records/bench-2026-10-03/README.md). Orders 3 and 4 of section 10 exist here;
+  no lab has taken them yet.
 
 ## 8. Step 4: behaviours
 

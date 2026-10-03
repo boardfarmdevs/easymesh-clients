@@ -23,8 +23,10 @@ around them.
 The Wi-Fi clients every lab runs: what they are, how they are built, configured and
 managed, what they can do, and how they can be made more capable.
 
-**This repository holds documents only, no client code.** Each lab still creates its own
-clients, with its own scripts:
+It holds the documents, and the **client models** as built so far: one wpa_supplicant 2.12
+build with a small patch series, the model files and their resolver, and a bench that
+checks every model on simulated radios (results in [docs/records](docs/records/)). **No lab
+uses them yet.** Each lab still creates its own clients, with its own scripts:
 
 | Lab | Where its clients are created | Client names |
 | --- | --- | --- |
@@ -34,14 +36,20 @@ clients, with its own scripts:
 | [Protocol lab](https://vcpe.dev/easymesh-lab/) | `tools/wifi_clients.py` | network namespaces around USB Wi-Fi adapters |
 
 Nothing in a lab depends on this repository, and no lab pins it. It is the place where
-what the clients have in common is written down first and, later, shared.
+what the clients have in common is written down and built first, and checked on its own,
+before a lab takes it.
 
 ## Components
 
 | Part | What it is |
 | --- | --- |
+| [supplicant/](supplicant/README.md) | the client build: wpa_supplicant 2.12 with the client-model patch series, stock hostapd 2.12 for the bench, iwd 3.12, and the RDK lab's 2.10 for comparison; from pinned release tarballs |
+| [models/](models/README.md) | the client models, one JSON file each, every value with its source and confidence, and the behaviour variants |
+| [clientmodel/](clientmodel/) | the resolver: a model into wpa_supplicant options or iwd's `main.conf` (`python3 -m clientmodel`) |
+| [bench/](bench/README.md) | the roaming bench: two access points and a client on `mac80211_hwsim` and the labs' wmediumd, the tests of the [roaming test plan](docs/project/roaming-test-plan.md), and the report |
+| [tests/](tests/) | the resolver's unit tests |
 | [site/](site) | the explainer site: the labs' Wi-Fi clients, from one container to a room of a hundred |
-| [docs/](docs) | the references (the clients of each lab, as built; what devices document about roaming), the proposals (more capable clients; client models, as requirements and design) and the roaming test plan |
+| [docs/](docs) | the references, the proposals, the roaming test plan and the bench's records |
 | [pages/](pages) | the site's build; the rest of the Pages workflow is the labs' shared one |
 
 ## Getting started
@@ -49,7 +57,18 @@ what the clients have in common is written down first and, later, shared.
 ```sh
 git clone git@github.com:boardfarmdevs/easymesh-clients.git
 cd easymesh-clients
+python3 -m unittest discover -s tests          # the resolver's rules (no root, no radios)
+python3 -m clientmodel resolve pixel           # what a model sets
 pages/build                                    # the site, into dist/site
+```
+
+The client build and the bench need a Linux VM that can load `mac80211_hwsim`, as root
+([the bench's README](bench/README.md) has the parts):
+
+```sh
+supplicant/build.sh --output /root/build --reference --iwd    # about 4 minutes
+python3 bench/bench.py run iphone B1 --runs 1                  # one test, one model
+python3 bench/bench.py suite                                   # every model, every test
 ```
 
 The documentation check and the site's finishing step are the labs' shared ones, kept in
@@ -72,4 +91,5 @@ lxc exec prpl-client-01 -- wpa_cli -i wlan0 status  # the prplMesh lab
 
 The [site](https://vcpe.dev/easymesh-clients/) introduces the clients for a newcomer. The
 documents are indexed in [docs/README.md](docs/README.md): the reference of every lab's
-clients as they are built today, and the proposal for more capable clients.
+clients as they are built today, what devices document about roaming, the proposals for
+more capable clients and for client models, the roaming test plan and the bench's records.

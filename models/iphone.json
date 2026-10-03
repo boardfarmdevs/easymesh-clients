@@ -1,0 +1,66 @@
+{
+  "schema": "client-model/2",
+  "id": "iphone",
+  "title": "iPhone",
+  "resembles": [
+    "iPhone, iOS"
+  ],
+  "implementation": "wpa_supplicant",
+  "capabilities": {
+    "bands": [
+      "2.4",
+      "5",
+      "6"
+    ],
+    "btm": true,
+    "neighbor_reports": true,
+    "fast_transition": true
+  },
+  "looking": {
+    "trigger_dbm": -70,
+    "scan_below_s": 10,
+    "scan_above_s": 300
+  },
+  "moving": {
+    "margin_db": 12,
+    "margin_active_db": 8,
+    "active_pps": 10,
+    "stay_above_trigger": true
+  },
+  "btm": {
+    "policy": "rules"
+  },
+  "sources": [
+    {
+      "fields": [
+        "looking.trigger_dbm",
+        "moving.margin_db",
+        "moving.margin_active_db",
+        "capabilities"
+      ],
+      "source": "Apple Platform Deployment, Wi-Fi roaming support in Apple devices (updated 2024-09-25)",
+      "read": "2026-10-03",
+      "confidence": "documented"
+    },
+    {
+      "fields": [
+        "btm.policy"
+      ],
+      "source": "Apple Platform Deployment, Wi-Fi roaming support in Apple devices (updated 2024-09-25)",
+      "read": "2026-10-03",
+      "confidence": "documented",
+      "note": "\"802.11v BSS transition data is reviewed when the device needs to roam\": a request is weighed by the device's own rules"
+    },
+    {
+      "fields": [
+        "looking.scan_below_s",
+        "looking.scan_above_s",
+        "moving.active_pps",
+        "moving.stay_above_trigger"
+      ],
+      "source": "not documented",
+      "read": "2026-10-03",
+      "confidence": "synthesized"
+    }
+  ]
+}

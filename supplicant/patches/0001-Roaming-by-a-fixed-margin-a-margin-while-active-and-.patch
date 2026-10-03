@@ -1,0 +1,257 @@
+From 2d526339bc516dc1ebbcb1946d67b8ce23ab9d57 Mon Sep 17 00:00:00 2001
+From: easymesh-clients <noreply@vcpe.dev>
+Date: Sat, 3 Oct 2026 11:25:27 -0700
+Subject: [PATCH 1/3] Roaming by a fixed margin, a margin while active, and
+ staying above a trigger
+
+Network options roam_margin, roam_margin_active, roam_active_pps and
+roam_trigger. With roam_margin set, the in-ESS decision moves only when the
+candidate is heard at least that many dB stronger than the current BSS (the
+active margin while the station transmitted roam_active_pps packets per second
+since the previous decision; received packets include beacons, so are not
+counted). With roam_trigger set, scan results do not move the station while
+the current BSS is above it, unless a background scan module reported a load
+trigger; a BSS Transition Management request is not affected. All default to
+0, which keeps the built-in decision. CTRL-EVENT-DO-ROAM and
+CTRL-EVENT-SKIP-ROAM say which rule acted.
+---
+ wpa_supplicant/config.c           |   4 ++
+ wpa_supplicant/config_file.c      |   4 ++
+ wpa_supplicant/config_ssid.h      |  36 +++++++++++
+ wpa_supplicant/events.c           | 101 ++++++++++++++++++++++++++++++
+ wpa_supplicant/wpa_supplicant_i.h |   9 +++
+ 5 files changed, 154 insertions(+)
+
+diff --git a/wpa_supplicant/config.c b/wpa_supplicant/config.c
+index e7fc3f4..15c42b6 100644
+--- a/wpa_supplicant/config.c
++++ b/wpa_supplicant/config.c
+@@ -2902,6 +2902,10 @@ static const struct parse_data ssid_fields[] = {
+ 	{ INT(ap_max_inactivity) },
+ 	{ INT(dtim_period) },
+ 	{ INT(beacon_int) },
++	{ INT_RANGE(roam_margin, 0, 100) },
++	{ INT_RANGE(roam_margin_active, 0, 100) },
++	{ INT_RANGE(roam_active_pps, 0, 1000000) },
++	{ INT_RANGE(roam_trigger, -127, 0) },
+ #ifdef CONFIG_MACSEC
+ 	{ INT_RANGE(macsec_policy, 0, 1) },
+ 	{ INT_RANGE(macsec_integ_only, 0, 1) },
+diff --git a/wpa_supplicant/config_file.c b/wpa_supplicant/config_file.c
+index 96facc3..2a1145b 100644
+--- a/wpa_supplicant/config_file.c
++++ b/wpa_supplicant/config_file.c
+@@ -931,6 +931,10 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid,
+ 	INT(ap_max_inactivity);
+ 	INT(dtim_period);
+ 	INT(beacon_int);
++	INT(roam_margin);
++	INT(roam_margin_active);
++	INT(roam_active_pps);
++	INT(roam_trigger);
+ #ifdef CONFIG_MACSEC
+ 	INT(macsec_policy);
+ 	write_mka_cak(f, ssid);
+diff --git a/wpa_supplicant/config_ssid.h b/wpa_supplicant/config_ssid.h
+index 7c60d4e..dbef2c7 100644
+--- a/wpa_supplicant/config_ssid.h
++++ b/wpa_supplicant/config_ssid.h
+@@ -884,6 +884,42 @@ struct wpa_ssid {
+ 	 */
+ 	int beacon_int;
+ 
++	/**
++	 * roam_margin - Fixed signal margin for roaming within an ESS (dB)
++	 *
++	 * 0 (default) keeps the built-in decision. A positive value replaces
++	 * it: the station moves only when the candidate is heard at least this
++	 * many dB stronger than the current BSS.
++	 */
++	int roam_margin;
++
++	/**
++	 * roam_margin_active - Roaming margin while passing traffic (dB)
++	 *
++	 * Used instead of roam_margin when roam_active_pps is set and the
++	 * station transmitted at least that many packets per
++	 * second since the previous roaming decision. 0: roam_margin.
++	 */
++	int roam_margin_active;
++
++	/**
++	 * roam_active_pps - Transmitted packets per second that make the
++	 * station active (received packets include beacons, so are not counted)
++	 *
++	 * 0 (default): the station is never considered active.
++	 */
++	int roam_active_pps;
++
++	/**
++	 * roam_trigger - Signal level (dBm) above which the station stays
++	 *
++	 * 0 (default) disables this. While the current BSS is heard above this
++	 * level, scan results do not cause a move within the ESS, unless a
++	 * background scan module reported a load trigger. A BSS Transition
++	 * Management request is not affected.
++	 */
++	int roam_trigger;
++
+ 	/**
+ 	 * auth_failures - Number of consecutive authentication failures
+ 	 */
+diff --git a/wpa_supplicant/events.c b/wpa_supplicant/events.c
+index 4f85da1..a738a02 100644
+--- a/wpa_supplicant/events.c
++++ b/wpa_supplicant/events.c
+@@ -2183,6 +2183,91 @@ static int wpas_evaluate_band_score(int frequency)
+ }
+ 
+ 
++/*
++ * Client models: a fixed margin, a margin while passing traffic and a level
++ * above which the station stays, instead of the built-in decision. Only used
++ * when the network sets roam_margin or roam_trigger. Returns 1 to roam, 0 to
++ * stay, -1 to leave the decision to the built-in rules (roam_trigger alone,
++ * current BSS below it). Active means the station transmitted
++ * roam_active_pps packets per second on average since the previous decision.
++ */
++static int wpas_roam_by_model(struct wpa_supplicant *wpa_s,
++			      struct wpa_ssid *ssid,
++			      struct wpa_bss *current_bss,
++			      struct wpa_bss *selected,
++			      int cur_level, int sel_level,
++			      const struct wpa_signal_info *si)
++{
++	int margin = ssid->roam_margin;
++	int active = 0;
++	int btm_in_progress = 0;
++	int ret;
++
++#ifdef CONFIG_WNM
++	/* roam_trigger does not apply to a BSS Transition Management request */
++	btm_in_progress = wpa_s->wnm_dialog_token != 0;
++#endif /* CONFIG_WNM */
++
++	if (si) {
++		struct os_reltime now, age;
++		/* Transmitted only: what is received includes beacons */
++		unsigned long packets = si->data.tx_packets;
++
++		os_get_reltime(&now);
++		if (os_reltime_initialized(&wpa_s->roam_prev_packets_time) &&
++		    packets >= wpa_s->roam_prev_packets) {
++			double secs;
++
++			os_reltime_sub(&now, &wpa_s->roam_prev_packets_time,
++				       &age);
++			secs = age.sec + age.usec / 1000000.0;
++			if (secs >= 0.5 && ssid->roam_active_pps > 0 &&
++			    (packets - wpa_s->roam_prev_packets) / secs >=
++			    ssid->roam_active_pps)
++				active = 1;
++		}
++		wpa_s->roam_prev_packets = packets;
++		wpa_s->roam_prev_packets_time = now;
++	}
++
++	if (ssid->roam_trigger && cur_level > ssid->roam_trigger &&
++	    !wpa_s->roam_load_triggered && !btm_in_progress) {
++		wpa_dbg(wpa_s, MSG_DEBUG,
++			"Skip roam - current BSS above roam_trigger (%d > %d)",
++			cur_level, ssid->roam_trigger);
++		wpa_msg_ctrl(wpa_s, MSG_INFO, WPA_EVENT_SKIP_ROAM
++			     "cur_bssid=" MACSTR " cur_freq=%d cur_level=%d cur_est=%d sel_bssid="
++			     MACSTR " sel_freq=%d sel_level=%d sel_est=%d reason=above_trigger trigger=%d",
++			     MAC2STR(current_bss->bssid), current_bss->freq,
++			     cur_level, current_bss->est_throughput,
++			     MAC2STR(selected->bssid), selected->freq,
++			     sel_level, selected->est_throughput,
++			     ssid->roam_trigger);
++		return 0;
++	}
++
++	if (margin <= 0)
++		return -1; /* roam_trigger alone: built-in rules below it */
++	if (active && ssid->roam_margin_active > 0)
++		margin = ssid->roam_margin_active;
++
++	ret = sel_level - cur_level >= margin;
++	wpa_dbg(wpa_s, MSG_DEBUG,
++		"%s - model margin %d (active=%d): %d vs %d",
++		ret ? "Allow reassociation" : "Skip roam", margin, active,
++		sel_level, cur_level);
++	wpa_msg_ctrl(wpa_s, MSG_INFO, "%scur_bssid=" MACSTR
++		     " cur_freq=%d cur_level=%d cur_est=%d sel_bssid=" MACSTR
++		     " sel_freq=%d sel_level=%d sel_est=%d reason=margin margin=%d active=%d load=%d",
++		     ret ? WPA_EVENT_DO_ROAM : WPA_EVENT_SKIP_ROAM,
++		     MAC2STR(current_bss->bssid), current_bss->freq, cur_level,
++		     current_bss->est_throughput, MAC2STR(selected->bssid),
++		     selected->freq, sel_level, selected->est_throughput,
++		     margin, active, wpa_s->roam_load_triggered);
++	return ret;
++}
++
++
+ int wpa_supplicant_need_to_roam_within_ess(struct wpa_supplicant *wpa_s,
+ 					   struct wpa_bss *current_bss,
+ 					   struct wpa_bss *selected,
+@@ -2196,6 +2281,9 @@ int wpa_supplicant_need_to_roam_within_ess(struct wpa_supplicant *wpa_s,
+ 	struct wpa_signal_info si;
+ 	int cur_snr = 0;
+ 	int ret = 0;
++	bool polled = false;
++	int cur_raw, sel_raw;
++	struct wpa_ssid *cssid = wpa_s->current_ssid;
+ 	const u8 *cur_ies = wpa_bss_ie_ptr(current_bss);
+ 	const u8 *sel_ies = wpa_bss_ie_ptr(selected);
+ 	size_t cur_ie_len = current_bss->ie_len ? current_bss->ie_len :
+@@ -2243,6 +2331,7 @@ int wpa_supplicant_need_to_roam_within_ess(struct wpa_supplicant *wpa_s,
+ 	 */
+ 	if (poll_current && wpa_drv_signal_poll(wpa_s, &si) == 0 &&
+ 	    (si.data.avg_beacon_signal || si.data.avg_signal)) {
++		polled = true;
+ 		/*
+ 		 * Normalize avg_signal to the RSSI over 20 MHz, as the
+ 		 * throughput is estimated based on the RSSI over 20 MHz
+@@ -2268,6 +2357,18 @@ int wpa_supplicant_need_to_roam_within_ess(struct wpa_supplicant *wpa_s,
+ 		cur_est = current_bss->est_throughput;
+ 	}
+ 
++	/* The levels as heard, before any channel width adjustment */
++	cur_raw = cur_level;
++	sel_raw = selected->level;
++
++	if (cssid && (cssid->roam_trigger || cssid->roam_margin)) {
++		int decision = wpas_roam_by_model(wpa_s, cssid, current_bss,
++						  selected, cur_raw, sel_raw,
++						  polled ? &si : NULL);
++		if (decision >= 0)
++			return decision;
++	}
++
+ 	/* Adjust the SNR of BSSes based on the channel width. */
+ 	cur_level += wpas_channel_width_rssi_bump(cur_ies, cur_ie_len,
+ 						  current_bss->max_cw);
+diff --git a/wpa_supplicant/wpa_supplicant_i.h b/wpa_supplicant/wpa_supplicant_i.h
+index cd76369..93dc37d 100644
+--- a/wpa_supplicant/wpa_supplicant_i.h
++++ b/wpa_supplicant/wpa_supplicant_i.h
+@@ -1301,6 +1301,15 @@ struct wpa_supplicant {
+ 	void *bgscan_priv;
+ 	int signal_threshold;
+ 
++	/* Packet count and time at the previous roaming decision, for
++	 * roam_active_pps */
++	unsigned long roam_prev_packets;
++	struct os_reltime roam_prev_packets_time;
++
++	/* Set by a background scan module while a load trigger is active; lets
++	 * scan results move the station above roam_trigger */
++	int roam_load_triggered;
++
+ 	const struct autoscan_ops *autoscan;
+ 	struct wpa_driver_scan_params *autoscan_params;
+ 	void *autoscan_priv;
+-- 
+2.34.1
+

@@ -1,0 +1,33 @@
+{
+  "schema": "client-model/2",
+  "id": "mac-intel",
+  "title": "Mac with Intel",
+  "resembles": [
+    "Mac with an Intel processor, macOS"
+  ],
+  "base": "mac",
+  "capabilities": {
+    "neighbor_reports": false,
+    "fast_transition": false,
+    "phy_max": "VHT"
+  },
+  "sources": [
+    {
+      "fields": [
+        "capabilities.neighbor_reports",
+        "capabilities.fast_transition"
+      ],
+      "source": "Apple Platform Deployment, Wi-Fi roaming support in Apple devices (updated 2024-09-25)",
+      "read": "2026-10-03",
+      "confidence": "documented"
+    },
+    {
+      "fields": [
+        "capabilities.phy_max"
+      ],
+      "source": "the device class: Intel Macs shipped with 802.11ac",
+      "read": "2026-10-03",
+      "confidence": "synthesized"
+    }
+  ]
+}

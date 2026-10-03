@@ -1,0 +1,92 @@
+{
+  "schema": "client-model/2",
+  "id": "pixel",
+  "title": "Pixel",
+  "resembles": [
+    "Google Pixel 6 to 9, Android"
+  ],
+  "implementation": "wpa_supplicant",
+  "capabilities": {
+    "bands": [
+      "2.4",
+      "5",
+      "6"
+    ],
+    "btm": true,
+    "neighbor_reports": true,
+    "fast_transition": true
+  },
+  "looking": {
+    "trigger_dbm": -75,
+    "scan_below_s": 10,
+    "scan_above_s": 120
+  },
+  "load_trigger": {
+    "5": {
+      "percent": 70,
+      "rssi_high_dbm": -70,
+      "rssi_low_dbm": -75,
+      "hold_s": 10
+    },
+    "2.4": {
+      "percent": 70,
+      "rssi_high_dbm": -60,
+      "rssi_low_dbm": -75,
+      "hold_s": 10
+    }
+  },
+  "moving": {
+    "margin_db": 10,
+    "stay_above_trigger": true
+  },
+  "btm": {
+    "policy": "accept",
+    "min_margin_db": 0
+  },
+  "sources": [
+    {
+      "fields": [
+        "looking.trigger_dbm",
+        "moving.margin_db"
+      ],
+      "source": "Google's bcmdhd driver for Pixel (google-modules/wlan/bcmdhd, bcm4389, bcm4398, bcm4390): Kbuild, wl_cfg80211.h, wl_android.c: CUSTOM_ROAM_TRIGGER_SETTING=-75, CUSTOM_ROAM_DELTA_SETTING=10",
+      "read": "2026-10-03",
+      "confidence": "configured in source"
+    },
+    {
+      "fields": [
+        "looking.scan_below_s",
+        "looking.scan_above_s"
+      ],
+      "source": "Google's bcmdhd driver for Pixel (google-modules/wlan/bcmdhd, bcm4389, bcm4398, bcm4390): Kbuild, wl_cfg80211.h, wl_android.c: DEFAULT_ROAM_SCAN_PRD 10, DEFAULT_FULL_ROAM_PRD 0x78",
+      "read": "2026-10-03",
+      "confidence": "configured in source"
+    },
+    {
+      "fields": [
+        "load_trigger"
+      ],
+      "source": "Google's bcmdhd driver for Pixel (google-modules/wlan/bcmdhd, bcm4389, bcm4398, bcm4390): Kbuild, wl_cfg80211.h, wl_android.c: WBTEXT profiles a -70 -75 70 10 and b -60 -75 70 10",
+      "read": "2026-10-03",
+      "confidence": "configured in source"
+    },
+    {
+      "fields": [
+        "btm.policy",
+        "btm.min_margin_db"
+      ],
+      "source": "Google's bcmdhd driver for Pixel (google-modules/wlan/bcmdhd, bcm4389, bcm4398, bcm4390): Kbuild, wl_cfg80211.h, wl_android.c: WBTEXT_BTMDELTA=0",
+      "read": "2026-10-03",
+      "confidence": "configured in source",
+      "note": "the meaning of the BTM delta is inferred from its name"
+    },
+    {
+      "fields": [
+        "moving.stay_above_trigger"
+      ],
+      "source": "not documented",
+      "read": "2026-10-03",
+      "confidence": "synthesized"
+    }
+  ]
+}

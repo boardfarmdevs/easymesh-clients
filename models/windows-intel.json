@@ -1,0 +1,54 @@
+{
+  "schema": "client-model/2",
+  "id": "windows-intel",
+  "title": "Windows with Intel",
+  "resembles": [
+    "Windows laptop with Intel Wi-Fi, Roaming Aggressiveness Medium"
+  ],
+  "implementation": "wpa_supplicant",
+  "capabilities": {
+    "bands": [
+      "2.4",
+      "5",
+      "6"
+    ],
+    "btm": true,
+    "neighbor_reports": false,
+    "fast_transition": false
+  },
+  "looking": {
+    "trigger_dbm": -75,
+    "scan_below_s": 10,
+    "scan_above_s": 120
+  },
+  "moving": {
+    "margin_db": 10,
+    "stay_above_trigger": true
+  },
+  "btm": {
+    "policy": "accept"
+  },
+  "sources": [
+    {
+      "fields": [
+        "looking.trigger_dbm"
+      ],
+      "source": "Intel, Wi-Fi Roaming Aggressiveness Setting (article 000005546, reviewed 2025-02-06): levels only",
+      "read": "2026-10-03",
+      "confidence": "synthesized",
+      "note": "the five levels mapped to -85, -80, -75, -70 and -65 dBm, as widely repeated without a citation to Intel"
+    },
+    {
+      "fields": [
+        "looking.scan_below_s",
+        "looking.scan_above_s",
+        "moving",
+        "btm.policy",
+        "capabilities"
+      ],
+      "source": "not documented",
+      "read": "2026-10-03",
+      "confidence": "synthesized"
+    }
+  ]
+}

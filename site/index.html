@@ -41,7 +41,7 @@
   laptop would. Each of the two optimizer labs keeps a hundred. This page explains what a client
   is, how it is built, configured and managed, what it does today, and how it can be made
   to do more without breaking a room that works.</p>
-  <p class="meta"><span>About a 15-minute read</span><a href="https://github.com/boardfarmdevs/easymesh-clients">The repository</a><a href="https://vcpe.dev/easymesh-medium/">The RF medium the clients live on</a><a href="https://vcpe.dev/easymesh-optimizer/">The optimizer that steers them</a><a href="https://mesh.vcpe.dev/">The EasyMesh labs</a></p>
+  <p class="meta"><span>About a 20-minute read</span><a href="https://github.com/boardfarmdevs/easymesh-clients">The repository</a><a href="https://vcpe.dev/easymesh-medium/">The RF medium the clients live on</a><a href="https://vcpe.dev/easymesh-optimizer/">The optimizer that steers them</a><a href="https://mesh.vcpe.dev/">The EasyMesh labs</a></p>
 </header>
 
 <nav class="toc" aria-label="Contents">
@@ -58,6 +58,7 @@
     <li><a href="#grow">Growing without breaking</a></li>
     <li><a href="#actions">Asking a client to do something</a></li>
     <li><a href="#models">Clients that behave like devices</a></li>
+    <li><a href="#bench">A model on the bench</a></li>
     <li><a href="#home">A home for the clients</a></li>
     <li><a href="#repository">The repository</a></li>
   </ol>
@@ -533,15 +534,137 @@ steering request.</p>
 <p>A model is data. One build of wpa_supplicant 2.12, with a few options added whose defaults
 keep today's behaviour, serves every model; the same container becomes an iPhone or a plug when
 a room loads. Only <code>linux-iwd</code> runs a different program, which is its point. Before
-any of it reaches a lab, a bench of two simulated access points and one client checks each
-model: where it starts looking, how much better the new access point is when it moves, and how
-it answers a steering request. The
+any of it reaches a lab, <a href="#bench">a bench</a> of two simulated access points and one
+client checks each model: where it starts looking, how much better the new access point is
+when it moves, and how it answers a steering request. The
 <a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/docs/proposals/client-models.md">requirements
 and design</a>, the
 <a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/docs/reference/documented-roaming.md">sources</a>
 and the
 <a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/docs/project/roaming-test-plan.md">test
 plan</a> are in this repository.</p>
+</section>
+
+<section id="bench">
+<h2>A model on the bench</h2>
+<p>A model is a claim: this client starts looking at −70 dBm and moves for 12 dB. Before a
+model goes near a room, a bench checks the claim. Two access points and one client run on
+simulated radios in network namespaces of a small VM, with the labs' own medium carrying
+every frame between them. A driver sets each signal level exactly, walks the levels by
+script, and records everything on one clock: the levels it set, every event of the client
+and of both access points, and the client's state every second.</p>
+<figure class="wide" id="fig-bench-walk">
+<div class="fig">
+<svg viewBox="0 0 820 268" role="img" aria-label="Test B1 with the iPhone model: AP1 falls from -50 dBm at 1 dB every 2 s while AP2 holds at -55 dBm; the client looks when AP1 is at -72 dBm, just below its -70 dBm trigger, and moves to AP2 at once.">
+  <line class="grid" x1="70" y1="52.0" x2="790" y2="52.0"/>
+  <text class="xs mono" x="62" y="56.0" text-anchor="end">−50</text>
+  <line class="grid" x1="70" y1="96.0" x2="790" y2="96.0"/>
+  <text class="xs mono" x="62" y="100.0" text-anchor="end">−60</text>
+  <line class="grid" x1="70" y1="140.0" x2="790" y2="140.0"/>
+  <text class="xs mono" x="62" y="144.0" text-anchor="end">−70</text>
+  <line class="grid" x1="70" y1="184.0" x2="790" y2="184.0"/>
+  <text class="xs mono" x="62" y="188.0" text-anchor="end">−80</text>
+  <line class="grid" x1="70" y1="228.0" x2="790" y2="228.0"/>
+  <text class="xs mono" x="62" y="232.0" text-anchor="end">−90</text>
+  <text class="xs mono" x="70.0" y="259.2" text-anchor="middle">0 s</text>
+  <text class="xs mono" x="230.0" y="259.2" text-anchor="middle">20 s</text>
+  <text class="xs mono" x="390.0" y="259.2" text-anchor="middle">40 s</text>
+  <text class="xs mono" x="550.0" y="259.2" text-anchor="middle">60 s</text>
+  <text class="xs mono" x="710.0" y="259.2" text-anchor="middle">80 s</text>
+  <text class="xs" x="20" y="22.0">dBm</text>
+  <line class="ln-warn dash" x1="70" y1="140.0" x2="790" y2="140.0"/>
+  <text class="xs lbl-warn" x="788" y="134.0" text-anchor="end">the model's trigger, −70 dBm</text>
+  <path class="ln-good" d="M78.0 74.0 H774.0"/>
+  <text class="s" x="774.0" y="66.0" text-anchor="end">AP2, held at −55 dBm</text>
+  <path class="ln-radio" d="M78.0 52.0 L428.4 148.8"/>
+  <path class="ln-faint dash" d="M428.4 148.8 L718.0 228.0"/>
+  <text class="s" x="110.0" y="44.0">AP1, 1 dB every 2 s</text>
+  <text class="xs" x="566.0" y="195.6">where the walk would have gone</text>
+  <circle class="fill-accent" cx="426.8" cy="148.8" r="5"/>
+  <path class="ln-accent" d="M428.4 140.8 L428.4 80.0" marker-end="url(#ah-accent)"/>
+  <text class="s lbl-accent" x="414.8" y="168.8" text-anchor="end">looks at −72 dBm (44.6 s)</text>
+  <text class="s lbl-accent" x="440.4" y="100.4">moves to AP2 0.2 s later:</text>
+  <text class="s lbl-accent" x="440.4" y="116.4">17 dB stronger, over its 12 dB margin</text>
+</svg>
+
+</div>
+<figcaption><b>One test, measured.</b> Test B1 with the <code>iphone</code> model: AP1 falls
+1 dB every 2 s while AP2 stays at −55 dBm. The client starts looking just below its trigger,
+finds AP2 17 dB stronger and moves at once.</figcaption>
+</figure>
+<p>Each test asks one question of a model, and the expected answer comes from the model
+file, so one set of tests serves every model:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Test</th><th>What it asks</th></tr></thead>
+<tbody>
+<tr><td>B1</td><td>Where does it start looking, as its access point fades?</td></tr>
+<tr><td>B2</td><td>Does it stay put above its trigger, even when a scan shows a far better AP?</td></tr>
+<tr><td>B3, B4</td><td>How much better must the other AP be before it moves, idle and passing traffic?</td></tr>
+<tr><td>B5 to B7</td><td>How does it answer a steering request (BSS Transition Management): to a better AP, to a weaker one, with disassociation imminent?</td></tr>
+<tr><td>B8</td><td>Does a busy access point make it look, as the Pixel and Galaxy document?</td></tr>
+<tr><td>B9</td><td>Which band does it choose, and does a 2.4 GHz-only device stay there?</td></tr>
+<tr><td>B10</td><td>Does it ping-pong between two access points whose signals keep crossing?</td></tr>
+<tr><td>B11, B12</td><td>Does iwd do what its manual says, and does today's default client still behave as the labs' current build?</td></tr>
+</tbody></table></div>
+<p>On 3 October every model ran every test that applies to it, three times: 441 runs on
+five copies of the bench VM, ten hours of runs in under three hours side by side. <b>Every conformance test
+of every model passed, in all three runs.</b> The tests a model does not specify (how it
+answers a request without the Abridged bit, a disassociation, which band it picks) are
+recorded on its card.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Model</th><th>Conformance tests passed</th><th>Recorded</th><th>Runs</th></tr></thead>
+<tbody>
+<tr><td><code>baseline</code></td><td class="num">3 of 3</td><td class="num">6</td><td class="num">27</td></tr>
+<tr><td><code>iphone</code></td><td class="num">7 of 7</td><td class="num">4</td><td class="num">33</td></tr>
+<tr><td><code>ipad</code></td><td class="num">7 of 7</td><td class="num">4</td><td class="num">33</td></tr>
+<tr><td><code>mac</code></td><td class="num">7 of 7</td><td class="num">4</td><td class="num">33</td></tr>
+<tr><td><code>mac-intel</code></td><td class="num">6 of 6</td><td class="num">4</td><td class="num">30</td></tr>
+<tr><td><code>pixel</code></td><td class="num">8 of 8</td><td class="num">3</td><td class="num">33</td></tr>
+<tr><td><code>galaxy</code></td><td class="num">7 of 7</td><td class="num">4</td><td class="num">33</td></tr>
+<tr><td><code>windows-intel</code></td><td class="num">6 of 6</td><td class="num">4</td><td class="num">30</td></tr>
+<tr><td><code>windows-intel-lowest</code></td><td class="num">6 of 6</td><td class="num">4</td><td class="num">30</td></tr>
+<tr><td><code>windows-intel-medium-low</code></td><td class="num">6 of 6</td><td class="num">4</td><td class="num">30</td></tr>
+<tr><td><code>windows-intel-medium-high</code></td><td class="num">6 of 6</td><td class="num">4</td><td class="num">30</td></tr>
+<tr><td><code>windows-intel-highest</code></td><td class="num">6 of 6</td><td class="num">4</td><td class="num">30</td></tr>
+<tr><td><code>linux-iwd</code></td><td class="num">4 of 4</td><td class="num">0</td><td class="num">12</td></tr>
+<tr><td><code>iot-2g4</code></td><td class="num">3 of 3</td><td class="num">3</td><td class="num">18</td></tr>
+<tr><td><code>pixel+btm-refuser</code></td><td class="num">2 of 2</td><td class="num">0</td><td class="num">6</td></tr>
+<tr><td><code>pixel+btm-ignorer</code></td><td class="num">2 of 2</td><td class="num">0</td><td class="num">6</td></tr>
+<tr><td><code>pixel+no-11v</code></td><td class="num">2 of 2</td><td class="num">0</td><td class="num">6</td></tr>
+<tr><td><code>iphone+btm-refuser</code></td><td class="num">2 of 2</td><td class="num">0</td><td class="num">6</td></tr>
+<tr><td><code>baseline</code> on the labs' 2.10</td><td class="num">3 of 3</td><td class="num">2</td><td class="num">15</td></tr>
+</tbody></table></div>
+<p>Every model started looking exactly 2 dB below its trigger, in every run, and moved 1 to 5 dB
+over its margin, the step of its 10-second scan. None ping-ponged in 33 ten-minute runs of
+crossing signals. The Pixel and Galaxy models looked when their access point said it was busy;
+the Mac did not. Today's default client, on wpa_supplicant 2.12 with the patches, did what the
+labs' 2.10 build does in every test.</p>
+<p>Building the bench taught as much as running it:</p>
+<ul>
+<li><b>A client is never idle by its packet counters.</b> An access point sends about ten
+beacons a second, so a client counting received packets looks busy at all times. "Passing
+traffic" now counts what the client transmits, which is also how Apple words it.</li>
+<li><b>Simulated radios scan slowly.</b> Scanning every channel takes 15 to 30 seconds on the
+simulated radio, against a few seconds on a phone, long enough for wpa_supplicant to give up
+on the scan. The bench limits scans to its two channels and says so.</li>
+<li><b>wpa_supplicant 2.12 obeys a steering request by its form.</b> With the Abridged bit
+set, the usual form, it follows. Without it, its current access point stays a choice; on the
+bench, judging from a scan 8 seconds old, it chose it, and "accepted" the request while
+naming the access point it was already on.</li>
+<li><b>The bench caught a mistake of our own.</b> The patched client's <em>accept</em> answer, meant
+to follow the access point's choice, at first did the same. It now takes the access point's
+preferred candidate, and the steering tests of every model that accepts were run again.</li>
+<li><b>iwd never answers a steering request.</b> It moves, but sends no response: a
+controller waiting for one waits in vain.</li>
+<li><b>hostap's own tests</b> of steering, background scanning, roaming and scanning give the
+same results with the patches as without them.</li>
+</ul>
+<p>The <a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/bench/README.md">bench</a>,
+the <a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/supplicant/README.md">client
+build</a> and the
+<a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/docs/records/bench-2026-10-03/README.md">results</a>,
+with a behaviour card per model, are in this repository. No lab uses the models yet; that is
+the next step, one lab and one room at a time.</p>
 </section>
 
 <section id="home">
@@ -558,8 +681,8 @@ reason.</p>
 <tbody>
 <tr><td class="num">1</td><td>these documents</td><td>now</td><td>nothing</td></tr>
 <tr><td class="num">2</td><td>the contract's check, the actions</td><td>when first wanted</td><td>nothing: a lab opts in</td></tr>
-<tr><td class="num">3</td><td>the catalog of models</td><td>with client models</td><td>nothing in existing rooms</td></tr>
-<tr><td class="num">4</td><td>one supplicant build</td><td>with the patch for models</td><td>both labs rebuild their client image, which the patch requires anyway</td></tr>
+<tr><td class="num">3</td><td>the catalog of models</td><td>built here, checked on the bench; in no lab yet</td><td>nothing in existing rooms</td></tr>
+<tr><td class="num">4</td><td>one supplicant build</td><td>built here (2.12 and three patches); in no lab yet</td><td>both labs rebuild their client image, which the patch requires anyway</td></tr>
 <tr><td class="num">5</td><td>the image and how a client is created</td><td>after that, one lab at a time</td><td>one full qualification per lab</td></tr>
 </tbody></table></div>
 <p>The reasoning, the alternatives and the experiments that come first are in
@@ -568,13 +691,18 @@ reason.</p>
 
 <section id="repository">
 <h2>The repository</h2>
-<p>For now it holds documents, and no client code. Each lab still creates its own clients.</p>
+<p>It holds the documents, the client build, the models and the bench. Each lab still
+creates its own clients, and none uses the models yet.</p>
 <div class="table-wrap"><table>
 <thead><tr><th>Part</th><th>What it is</th></tr></thead>
 <tbody>
+<tr><td><code>supplicant/</code></td><td><a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/supplicant/README.md">the client build</a>: wpa_supplicant 2.12 and three patches, stock hostapd 2.12 for the bench, iwd 3.12, from pinned release tarballs</td></tr>
+<tr><td><code>models/</code>, <code>clientmodel/</code></td><td><a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/models/README.md">the models</a>, one file each with its sources, and the resolver that turns one into a client's settings</td></tr>
+<tr><td><code>bench/</code></td><td><a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/bench/README.md">the bench</a>: its radios, medium, access points, tests and report</td></tr>
+<tr><td><code>docs/records/</code></td><td><a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/docs/records/bench-2026-10-03/README.md">the bench's results</a>: a behaviour card per model</td></tr>
 <tr><td><code>site/</code></td><td>this page</td></tr>
 <tr><td><code>docs/reference/</code></td><td><a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/docs/reference/lab-clients.md">the clients of each lab</a>, as they are built: image, supplicant, configuration, address, pool, start gates, and everything that reaches into a client</td></tr>
-<tr><td><code>docs/proposals/</code></td><td><a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/docs/proposals/more-capable-clients.md">more capable clients</a>: the contract, the actions, models and behaviours, and when the code is worth sharing</td></tr>
+<tr><td><code>docs/proposals/</code></td><td><a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/docs/proposals/more-capable-clients.md">more capable clients</a>: the contract, the actions, models and behaviours, and when the code is worth sharing; <a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/docs/proposals/client-models.md">client models</a>: the requirements and design</td></tr>
 </tbody></table></div>
 <p>Where the clients are created today:</p>
 <div class="table-wrap"><table>

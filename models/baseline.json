@@ -1,0 +1,19 @@
+{
+  "schema": "client-model/2",
+  "id": "baseline",
+  "title": "Baseline",
+  "resembles": [
+    "the labs' client today: wpa_supplicant with no roaming configuration"
+  ],
+  "implementation": "wpa_supplicant",
+  "sources": [
+    {
+      "fields": [
+        "*"
+      ],
+      "source": "wpa_supplicant 2.12 as released: every option at its default",
+      "read": "2026-10-03",
+      "confidence": "source"
+    }
+  ]
+}

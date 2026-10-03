@@ -1,0 +1,248 @@
+From 2c2a239434704df1c93b12bd009252c165783255 Mon Sep 17 00:00:00 2001
+From: easymesh-clients <noreply@vcpe.dev>
+Date: Sat, 3 Oct 2026 11:27:56 -0700
+Subject: [PATCH 3/3] BTM policy: rules, accept, reject or ignore; a minimum
+ margin
+
+Global options btm_policy, btm_reject_status and btm_min_margin. Policy 0
+(default) keeps the behaviour as released: the station chooses among the
+request's candidates and, unless the Abridged bit or Disassociation Imminent
+rules it out, the current BSS, by its own roaming rules. Policy 1 follows the
+AP: it moves to the most preferred listed candidate heard in the last 10
+seconds, scanning first when none is, and refuses (status 7) when none can be
+used; btm_min_margin then refuses a candidate heard less than that many dB
+above the current BSS. Policy 2 answers with btm_reject_status, policy 3
+sends no answer. Decisions are reported as CTRL-EVENT-BTM-POLICY. This
+replaces the testing-only reject_btm_req_reason for lab clients.
+---
+ wpa_supplicant/config.c      |  5 ++
+ wpa_supplicant/config.h      | 26 ++++++++++
+ wpa_supplicant/config_file.c |  6 +++
+ wpa_supplicant/wnm_sta.c     | 99 ++++++++++++++++++++++++++++++++++--
+ 4 files changed, 133 insertions(+), 3 deletions(-)
+
+diff --git a/wpa_supplicant/config.c b/wpa_supplicant/config.c
+index 15c42b6..a9d8f4f 100644
+--- a/wpa_supplicant/config.c
++++ b/wpa_supplicant/config.c
+@@ -4949,6 +4949,8 @@ struct wpa_config * wpa_config_alloc_empty(const char *ctrl_interface,
+ 	config->cert_in_cb = DEFAULT_CERT_IN_CB;
+ 	config->wpa_rsc_relaxation = DEFAULT_WPA_RSC_RELAXATION;
+ 	config->extended_key_id = DEFAULT_EXTENDED_KEY_ID;
++	config->btm_reject_status = 1;
++	config->btm_min_margin = -1;
+ 
+ #ifdef CONFIG_MBO
+ 	config->mbo_cell_capa = DEFAULT_MBO_CELL_CAPA;
+@@ -6001,6 +6003,9 @@ static const struct global_parse_data global_fields[] = {
+ 	{ INT_RANGE(coloc_intf_reporting, 0, 1), 0 },
+ #ifdef CONFIG_WNM
+ 	{ INT_RANGE(disable_btm, 0, 1), CFG_CHANGED_DISABLE_BTM },
++	{ INT_RANGE(btm_policy, 0, 3), 0 },
++	{ INT_RANGE(btm_reject_status, 1, 255), 0 },
++	{ INT_RANGE(btm_min_margin, -1, 100), 0 },
+ 	{ INT_RANGE(extended_key_id, 0, 1), 0 },
+ #endif /* CONFIG_WNM */
+ 	{ INT_RANGE(wowlan_disconnect_on_deinit, 0, 1), 0},
+diff --git a/wpa_supplicant/config.h b/wpa_supplicant/config.h
+index 6102764..3b7206c 100644
+--- a/wpa_supplicant/config.h
++++ b/wpa_supplicant/config.h
+@@ -1807,6 +1807,32 @@ struct wpa_config {
+ 	 */
+ 	int disable_btm;
+ 
++	/**
++	 * btm_policy - How to answer a BSS Transition Management Request
++	 * 0 = as released: the station chooses among the candidates and,
++	 *     unless the request's Abridged bit or Disassociation Imminent
++	 *     rules it out, the current BSS, by its own roaming rules (default)
++	 * 1 = accept: move to the AP's most preferred listed candidate heard in
++	 *     the last 10 s, scanning first when none is; refuse (status 7)
++	 *     when none can be used (see btm_min_margin)
++	 * 2 = reject: answer with btm_reject_status
++	 * 3 = ignore: send no answer
++	 */
++	int btm_policy;
++
++	/**
++	 * btm_reject_status - Status code of a rejection by btm_policy=2
++	 * (default 1, unspecified reject)
++	 */
++	int btm_reject_status;
++
++	/**
++	 * btm_min_margin - With btm_policy=1, refuse a candidate heard less
++	 * than this many dB above the current BSS (status 7, no suitable
++	 * candidates); 0 refuses only weaker candidates; -1 disables (default)
++	 */
++	int btm_min_margin;
++
+ 	/**
+ 	 * extended_key_id - Extended Key ID support
+ 	 *
+diff --git a/wpa_supplicant/config_file.c b/wpa_supplicant/config_file.c
+index 2a1145b..d707f05 100644
+--- a/wpa_supplicant/config_file.c
++++ b/wpa_supplicant/config_file.c
+@@ -1780,6 +1780,12 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
+ 			config->p2p_interface_random_mac_addr);
+ 	if (config->disable_btm)
+ 		fprintf(f, "disable_btm=1\n");
++	if (config->btm_policy)
++		fprintf(f, "btm_policy=%d\n", config->btm_policy);
++	if (config->btm_reject_status != 1)
++		fprintf(f, "btm_reject_status=%d\n", config->btm_reject_status);
++	if (config->btm_min_margin != -1)
++		fprintf(f, "btm_min_margin=%d\n", config->btm_min_margin);
+ 	if (config->extended_key_id != DEFAULT_EXTENDED_KEY_ID)
+ 		fprintf(f, "extended_key_id=%d\n",
+ 			config->extended_key_id);
+diff --git a/wpa_supplicant/wnm_sta.c b/wpa_supplicant/wnm_sta.c
+index 7e3b355..3ab3061 100644
+--- a/wpa_supplicant/wnm_sta.c
++++ b/wpa_supplicant/wnm_sta.c
+@@ -1121,6 +1121,42 @@ static void wnm_bss_tm_connect(struct wpa_supplicant *wpa_s,
+ }
+ 
+ 
++/*
++ * btm_policy=1 follows the AP: its most preferred listed candidate (the list
++ * is sorted by preference when the request arrives) that the scan results
++ * hold, heard in the last 10 seconds, and that may be used; never the current
++ * BSS.
++ */
++static struct wpa_bss * wnm_btm_policy_candidate(struct wpa_supplicant *wpa_s,
++						 struct wpa_ssid *ssid)
++{
++	int i;
++
++	for (i = 0; i < wpa_s->wnm_num_neighbor_report; i++) {
++		struct neighbor_report *nei;
++		struct wpa_bss *bss;
++		struct os_reltime age;
++
++		nei = &wpa_s->wnm_neighbor_report_elements[i];
++		if (nei->preference_present && nei->preference == 0)
++			continue;
++		if (ether_addr_equal(nei->bssid, wpa_s->bssid))
++			continue;
++		bss = wpa_bss_get_bssid(wpa_s, nei->bssid);
++		if (!bss)
++			continue;
++		os_reltime_age(&bss->last_update, &age);
++		if (age.sec >= 10)
++			continue;
++		if (!wpa_scan_res_match(wpa_s, 0, bss, ssid, 1, 0, false))
++			continue;
++		return bss;
++	}
++
++	return NULL;
++}
++
++
+ int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
+ {
+ 	struct wpa_bss *bss, *current_bss = wpa_s->current_bss;
+@@ -1188,6 +1224,19 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
+ 	}
+ #endif /* CONFIG_MBO */
+ 
++	/*
++	 * btm_policy=1 takes the AP's candidate, not the client's own choice
++	 * among the candidates and the current BSS: scan first when none is
++	 * known, refuse when none can be used after the scan.
++	 */
++	if (wpa_s->conf->btm_policy == 1) {
++		struct wpa_bss *cand = wnm_btm_policy_candidate(wpa_s, ssid);
++
++		if (!cand && pre_scan_check)
++			return 0;
++		bss = cand;
++	}
++
+ 	/*
+ 	 * If this is a pre-scan check, returning 0 will trigger a scan and
+ 	 * another call. In that case, reject "bad" candidates in the hope of
+@@ -1209,7 +1258,8 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
+ 			return 0;
+ 
+ #ifndef CONFIG_NO_ROAMING
+-		if (current_bss && bss != current_bss &&
++		if (wpa_s->conf->btm_policy != 1 &&
++		    current_bss && bss != current_bss &&
+ 		    wpa_supplicant_need_to_roam_within_ess(wpa_s, bss,
+ 							   current_bss, false))
+ 			return 0;
+@@ -1217,8 +1267,10 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
+ 	}
+ 
+ #ifndef CONFIG_NO_ROAMING
+-	/* Apply normal roaming rules if we can stay with the current BSS */
+-	if (current_bss && bss != current_bss &&
++	/* Apply normal roaming rules if we can stay with the current BSS,
++	 * unless btm_policy=1 accepts the request without them */
++	if (wpa_s->conf->btm_policy != 1 &&
++	    current_bss && bss != current_bss &&
+ 	    wpa_scan_res_match(wpa_s, 0, current_bss, wpa_s->current_ssid,
+ 			       1, 0, false) &&
+ 	    !wpa_supplicant_need_to_roam_within_ess(wpa_s, current_bss, bss,
+@@ -1232,6 +1284,30 @@ int wnm_scan_process(struct wpa_supplicant *wpa_s, bool pre_scan_check)
+ 		goto send_bss_resp_fail;
+ 	}
+ 
++	if (wpa_s->conf->btm_policy == 1 && current_bss &&
++	    bss != current_bss && wpa_s->conf->btm_min_margin >= 0) {
++		struct wpa_signal_info si;
++		int cur_level = current_bss->level;
++
++		if (wpa_drv_signal_poll(wpa_s, &si) == 0 &&
++		    (si.data.avg_beacon_signal || si.data.signal))
++			cur_level = si.data.avg_beacon_signal ?
++				si.data.avg_beacon_signal : si.data.signal;
++		if (bss->level < cur_level + wpa_s->conf->btm_min_margin) {
++			wpa_msg(wpa_s, MSG_INFO,
++				"CTRL-EVENT-BTM-POLICY action=reject reason=min_margin target="
++				MACSTR " target_level=%d cur_level=%d margin=%d",
++				MAC2STR(bss->bssid), bss->level, cur_level,
++				wpa_s->conf->btm_min_margin);
++			status = WNM_BSS_TM_REJECT_NO_SUITABLE_CANDIDATES;
++			goto send_bss_resp_fail;
++		}
++	}
++	if (wpa_s->conf->btm_policy == 1)
++		wpa_msg(wpa_s, MSG_INFO,
++			"CTRL-EVENT-BTM-POLICY action=accept target=" MACSTR
++			" target_level=%d", MAC2STR(bss->bssid), bss->level);
++
+ 	wpa_printf(MSG_DEBUG,
+ 		   "WNM: Found an acceptable preferred transition candidate BSS "
+ 		   MACSTR " (RSSI %d, tput: %d  bss-tput: %d)",
+@@ -1561,6 +1637,23 @@ static void ieee802_11_rx_bss_trans_mgmt_req(struct wpa_supplicant *wpa_s,
+ 	}
+ #endif /* CONFIG_MBO && CONFIG_TESTING_OPTIONS */
+ 
++	if (wpa_s->conf->btm_policy == 3) {
++		wpa_msg(wpa_s, MSG_INFO,
++			"CTRL-EVENT-BTM-POLICY action=ignore token=%u",
++			wpa_s->wnm_dialog_token);
++		goto reset;
++	}
++	if (wpa_s->conf->btm_policy == 2) {
++		wpa_msg(wpa_s, MSG_INFO,
++			"CTRL-EVENT-BTM-POLICY action=reject status=%d token=%u",
++			wpa_s->conf->btm_reject_status,
++			wpa_s->wnm_dialog_token);
++		wnm_send_bss_transition_mgmt_resp(
++			wpa_s, wpa_s->conf->btm_reject_status,
++			MBO_TRANSITION_REJECT_REASON_UNSPECIFIED, 0, NULL);
++		goto reset;
++	}
++
+ 	pos += 5;
+ 
+ 	if (wpa_s->wnm_mode & WNM_BSS_TM_REQ_BSS_TERMINATION_INCLUDED) {
+-- 
+2.34.1
+

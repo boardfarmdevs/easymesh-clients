@@ -1,0 +1,20 @@
+{
+  "schema": "client-model/2",
+  "id": "+btm-refuser",
+  "title": "refuses BTM",
+  "applies_to": "wpa_supplicant",
+  "btm": {
+    "policy": "reject",
+    "reject_status": 1
+  },
+  "sources": [
+    {
+      "fields": [
+        "btm"
+      ],
+      "source": "not documented: a behaviour to test steering against",
+      "read": "2026-10-03",
+      "confidence": "synthesized"
+    }
+  ]
+}

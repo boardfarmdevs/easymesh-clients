@@ -1,0 +1,19 @@
+{
+  "schema": "client-model/2",
+  "id": "+no-11v",
+  "title": "no 802.11v",
+  "applies_to": "wpa_supplicant",
+  "capabilities": {
+    "btm": false
+  },
+  "sources": [
+    {
+      "fields": [
+        "capabilities.btm"
+      ],
+      "source": "wpa_supplicant 2.12: disable_btm=1",
+      "read": "2026-10-03",
+      "confidence": "configuration"
+    }
+  ]
+}

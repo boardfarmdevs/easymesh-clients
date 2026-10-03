@@ -1,0 +1,23 @@
+{
+  "schema": "client-model/2",
+  "id": "windows-intel-highest",
+  "title": "Windows with Intel, highest",
+  "resembles": [
+    "Windows laptop with Intel Wi-Fi, Roaming Aggressiveness Highest"
+  ],
+  "base": "windows-intel",
+  "looking": {
+    "trigger_dbm": -65
+  },
+  "sources": [
+    {
+      "fields": [
+        "looking.trigger_dbm"
+      ],
+      "source": "Intel, Wi-Fi Roaming Aggressiveness Setting (article 000005546, reviewed 2025-02-06): levels only",
+      "read": "2026-10-03",
+      "confidence": "synthesized",
+      "note": "the five levels mapped to -85, -80, -75, -70 and -65 dBm, as widely repeated without a citation to Intel"
+    }
+  ]
+}

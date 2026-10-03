@@ -1,0 +1,26 @@
+{
+  "schema": "client-model/2",
+  "id": "linux-iwd",
+  "title": "Linux with iwd",
+  "resembles": [
+    "a Linux device running iwd 3.12"
+  ],
+  "implementation": "iwd",
+  "iwd": {
+    "RoamThreshold": -70,
+    "RoamThreshold5G": -76,
+    "CriticalRoamThreshold": -80,
+    "CriticalRoamThreshold5G": -82,
+    "RoamRetryInterval": 60
+  },
+  "sources": [
+    {
+      "fields": [
+        "iwd"
+      ],
+      "source": "iwd 3.12 (2026-03-13), iwd.config(5): the defaults, made explicit",
+      "read": "2026-10-03",
+      "confidence": "documented"
+    }
+  ]
+}

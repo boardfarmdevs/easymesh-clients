@@ -1,0 +1,613 @@
+From ea8f1ed5df57dfa9b6d0adf3ed1d0eea8b705a5d Mon Sep 17 00:00:00 2001
+From: easymesh-clients <noreply@vcpe.dev>
+Date: Sat, 3 Oct 2026 11:27:19 -0700
+Subject: [PATCH 2/3] bgscan model: load trigger, roam scan on beacon loss,
+ roam scan events
+
+A background scan module with the simple module's behaviour plus: while the
+current BSS is heard between two levels, its advertised channel utilization
+(BSS Load element, refreshed by scans of its channel) above a percentage for
+a hold time starts a roam scan and sets roam_load_triggered, so scan results
+may move the station above roam_trigger; a roam scan on beacon loss; and
+CTRL-EVENT-ROAM-SCAN events with the reason. CONFIG_BGSCAN_MODEL.
+---
+ wpa_supplicant/Makefile       |  10 +
+ wpa_supplicant/bgscan.c       |   3 +
+ wpa_supplicant/bgscan.h       |   3 +
+ wpa_supplicant/bgscan_model.c | 512 ++++++++++++++++++++++++++++++++++
+ wpa_supplicant/defconfig      |   4 +
+ 5 files changed, 532 insertions(+)
+ create mode 100644 wpa_supplicant/bgscan_model.c
+
+diff --git a/wpa_supplicant/Makefile b/wpa_supplicant/Makefile
+index 67f337d..f844f4c 100644
+--- a/wpa_supplicant/Makefile
++++ b/wpa_supplicant/Makefile
+@@ -377,6 +377,10 @@ ifdef CONFIG_BGSCAN_SIMPLE
+ CONFIG_WNM=y
+ endif
+ 
++ifdef CONFIG_BGSCAN_MODEL
++CONFIG_WNM=y
++endif
++
+ ifdef CONFIG_WNM
+ CFLAGS += -DCONFIG_WNM
+ OBJS += wnm_sta.o
+@@ -1892,6 +1896,12 @@ OBJS += bgscan_learn.o
+ NEED_BGSCAN=y
+ endif
+ 
++ifdef CONFIG_BGSCAN_MODEL
++CFLAGS += -DCONFIG_BGSCAN_MODEL
++OBJS += bgscan_model.o
++NEED_BGSCAN=y
++endif
++
+ ifdef NEED_BGSCAN
+ CFLAGS += -DCONFIG_BGSCAN
+ OBJS += bgscan.o
+diff --git a/wpa_supplicant/bgscan.c b/wpa_supplicant/bgscan.c
+index 1ea6401..aaa1daa 100644
+--- a/wpa_supplicant/bgscan.c
++++ b/wpa_supplicant/bgscan.c
+@@ -21,6 +21,9 @@ static const struct bgscan_ops * bgscan_modules[] = {
+ #ifdef CONFIG_BGSCAN_LEARN
+ 	&bgscan_learn_ops,
+ #endif /* CONFIG_BGSCAN_LEARN */
++#ifdef CONFIG_BGSCAN_MODEL
++	&bgscan_model_ops,
++#endif /* CONFIG_BGSCAN_MODEL */
+ 	NULL
+ };
+ 
+diff --git a/wpa_supplicant/bgscan.h b/wpa_supplicant/bgscan.h
+index 4388b4e..5c41c75 100644
+--- a/wpa_supplicant/bgscan.h
++++ b/wpa_supplicant/bgscan.h
+@@ -47,6 +47,9 @@ extern const struct bgscan_ops bgscan_simple_ops;
+ #ifdef CONFIG_BGSCAN_LEARN
+ extern const struct bgscan_ops bgscan_learn_ops;
+ #endif /* CONFIG_BGSCAN_LEARN */
++#ifdef CONFIG_BGSCAN_MODEL
++extern const struct bgscan_ops bgscan_model_ops;
++#endif /* CONFIG_BGSCAN_MODEL */
+ 
+ #else /* CONFIG_BGSCAN */
+ 
+diff --git a/wpa_supplicant/bgscan_model.c b/wpa_supplicant/bgscan_model.c
+new file mode 100644
+index 0000000..e976fbe
+--- /dev/null
++++ b/wpa_supplicant/bgscan_model.c
+@@ -0,0 +1,512 @@
++/*
++ * WPA Supplicant - background scan and roaming module: model
++ * Copyright (c) 2009-2010, Jouni Malinen <j@w1.fi>
++ * Copyright (c) 2026, the EasyMesh labs (easymesh-clients)
++ *
++ * This software may be distributed under the terms of the BSD license.
++ * See README for more details.
++ *
++ * The simple module's behaviour (a short scan interval below a signal
++ * threshold, a long one above it), plus what the labs' client models need:
++ * - a load trigger: while the current BSS is heard between two levels, its
++ *   advertised channel utilization above a percentage for a hold time starts
++ *   a roam scan and lets scan results move the station above roam_trigger;
++ * - a roam scan on beacon loss;
++ * - CTRL-EVENT-ROAM-SCAN events that say why a scan was requested;
++ * - the network's scan_freq, or else the global freq_list, limits its scans.
++ *
++ * bgscan="model:<short>:<threshold>:<long>[:<percent>:<high>:<low>:<hold>
++ *          [:<high_2g4>:<low_2g4>]]"
++ *   short, long  scan intervals (s) below and above threshold (dBm)
++ *   percent      channel utilization (%) above which the AP counts as busy
++ *   high, low    the levels (dBm) between which the load is watched
++ *   hold         how long (s) the AP must stay busy
++ *   high_2g4, low_2g4  the levels on 2.4 GHz, when they differ
++ */
++
++#include "includes.h"
++
++#include "common.h"
++#include "eloop.h"
++#include "common/ieee802_11_defs.h"
++#include "drivers/driver.h"
++#include "config_ssid.h"
++#include "wpa_supplicant_i.h"
++#include "driver_i.h"
++#include "scan.h"
++#include "config.h"
++#include "bss.h"
++#include "bgscan.h"
++
++struct bgscan_model_data {
++	struct wpa_supplicant *wpa_s;
++	const struct wpa_ssid *ssid;
++	int scan_interval;
++	int signal_threshold;
++	int short_scan_count; /* counter for scans using short scan interval */
++	int max_short_scans; /* maximum times we short-scan before back-off */
++	int short_interval; /* use if signal < threshold */
++	int long_interval; /* use if signal > threshold */
++	struct os_reltime last_bgscan;
++	const char *next_reason; /* why the next timeout scan is requested */
++
++	/* load trigger */
++	int load_percent;
++	int load_high;
++	int load_low;
++	int load_high_2g4;
++	int load_low_2g4;
++	int load_hold;
++	int load_scan_inflight; /* a channel scan to refresh the BSS Load */
++	struct os_reltime busy_since;
++};
++
++
++static void bgscan_model_timeout(void *eloop_ctx, void *timeout_ctx);
++static void bgscan_model_load_timeout(void *eloop_ctx, void *timeout_ctx);
++
++
++static int bgscan_model_level(struct wpa_supplicant *wpa_s)
++{
++	struct wpa_signal_info si;
++
++	if (wpa_drv_signal_poll(wpa_s, &si) < 0)
++		return 0;
++	if (si.data.avg_beacon_signal)
++		return si.data.avg_beacon_signal;
++	return si.data.signal;
++}
++
++
++static void bgscan_model_event(struct bgscan_model_data *data,
++			       const char *reason, int level, int load)
++{
++	if (load >= 0)
++		wpa_msg(data->wpa_s, MSG_INFO,
++			"CTRL-EVENT-ROAM-SCAN reason=%s level=%d load=%d",
++			reason, level, load);
++	else
++		wpa_msg(data->wpa_s, MSG_INFO,
++			"CTRL-EVENT-ROAM-SCAN reason=%s level=%d",
++			reason, level);
++}
++
++
++static int bgscan_model_scan(struct bgscan_model_data *data, int freq)
++{
++	struct wpa_supplicant *wpa_s = data->wpa_s;
++	struct wpa_driver_scan_params params;
++	int freqs[2];
++
++	os_memset(&params, 0, sizeof(params));
++	params.num_ssids = 1;
++	params.ssids[0].ssid = data->ssid->ssid;
++	params.ssids[0].ssid_len = data->ssid->ssid_len;
++	if (freq) {
++		freqs[0] = freq;
++		freqs[1] = 0;
++		params.freqs = freqs;
++	} else if (data->ssid->scan_freq) {
++		params.freqs = data->ssid->scan_freq;
++	} else {
++		/* The global freq_list limits these scans as it does others */
++		params.freqs = wpa_s->conf->freq_list;
++	}
++
++	/* Add OWE transition mode SSID of the current network */
++	wpa_add_owe_scan_ssid(wpa_s, &params, data->ssid,
++			      wpa_s->max_scan_ssids - params.num_ssids);
++
++	return wpa_supplicant_trigger_scan(wpa_s, &params, true, false);
++}
++
++
++static void bgscan_model_timeout(void *eloop_ctx, void *timeout_ctx)
++{
++	struct bgscan_model_data *data = eloop_ctx;
++	struct wpa_supplicant *wpa_s = data->wpa_s;
++	const char *reason = data->next_reason;
++
++	data->next_reason = NULL;
++	if (!reason)
++		reason = data->scan_interval == data->short_interval ?
++			"below" : "above";
++
++	wpa_printf(MSG_DEBUG, "bgscan model: Request a background scan (%s)",
++		   reason);
++	if (bgscan_model_scan(data, 0)) {
++		wpa_printf(MSG_DEBUG, "bgscan model: Failed to trigger scan");
++		eloop_register_timeout(data->scan_interval, 0,
++				       bgscan_model_timeout, data, NULL);
++		return;
++	}
++
++	bgscan_model_event(data, reason, bgscan_model_level(wpa_s), -1);
++	if (data->scan_interval == data->short_interval) {
++		data->short_scan_count++;
++		if (data->short_scan_count >= data->max_short_scans) {
++			data->scan_interval = data->long_interval;
++			wpa_printf(MSG_DEBUG,
++				   "bgscan model: Backing off to long scan interval");
++		}
++	} else if (data->short_scan_count > 0) {
++		/*
++		 * If we lasted a long scan interval without any CQM triggers,
++		 * decrease the short-scan count, which allows 1 more
++		 * short-scan interval to occur in the future when CQM
++		 * triggers.
++		 */
++		data->short_scan_count--;
++	}
++	os_get_reltime(&data->last_bgscan);
++}
++
++
++static void bgscan_model_scan_now(struct bgscan_model_data *data,
++				  const char *reason)
++{
++	data->next_reason = reason;
++	eloop_cancel_timeout(bgscan_model_timeout, data, NULL);
++	eloop_register_timeout(0, 0, bgscan_model_timeout, data, NULL);
++}
++
++
++static int bgscan_model_in_load_zone(struct bgscan_model_data *data,
++				     int level)
++{
++	int high = data->load_high, low = data->load_low;
++
++	if (data->wpa_s->assoc_freq && data->wpa_s->assoc_freq < 3000) {
++		high = data->load_high_2g4;
++		low = data->load_low_2g4;
++	}
++	return level && level <= high && level >= low;
++}
++
++
++static void bgscan_model_load_clear(struct bgscan_model_data *data)
++{
++	os_memset(&data->busy_since, 0, sizeof(data->busy_since));
++	data->wpa_s->roam_load_triggered = 0;
++}
++
++
++/*
++ * While the current BSS is heard in the load zone, scan its channel now and
++ * then, so its BSS Load element (from Beacon and Probe Response frames) stays
++ * current. The element is read when the results arrive.
++ */
++static void bgscan_model_load_timeout(void *eloop_ctx, void *timeout_ctx)
++{
++	struct bgscan_model_data *data = eloop_ctx;
++	struct wpa_supplicant *wpa_s = data->wpa_s;
++	int level = bgscan_model_level(wpa_s);
++	int interval = data->load_hold / 2 > 0 ? data->load_hold / 2 : 1;
++
++	if (bgscan_model_in_load_zone(data, level) && wpa_s->assoc_freq) {
++		wpa_printf(MSG_DEBUG,
++			   "bgscan model: Refresh the current BSS's load (level %d)",
++			   level);
++		if (bgscan_model_scan(data, wpa_s->assoc_freq))
++			wpa_printf(MSG_DEBUG,
++				   "bgscan model: Failed to trigger load scan");
++		else
++			data->load_scan_inflight = 1;
++	} else {
++		bgscan_model_load_clear(data);
++	}
++
++	eloop_register_timeout(interval, 0, bgscan_model_load_timeout, data,
++			       NULL);
++}
++
++
++static void bgscan_model_check_load(struct bgscan_model_data *data)
++{
++	struct wpa_supplicant *wpa_s = data->wpa_s;
++	const u8 *ie;
++	struct os_reltime now, age;
++	int level, load;
++
++	if (!data->load_percent || !wpa_s->current_bss)
++		return;
++
++	level = bgscan_model_level(wpa_s);
++	ie = wpa_bss_get_ie(wpa_s->current_bss, WLAN_EID_BSS_LOAD);
++	if (!bgscan_model_in_load_zone(data, level) || !ie || ie[1] < 5) {
++		bgscan_model_load_clear(data);
++		return;
++	}
++
++	/* Station Count (2), Channel Utilization (1, of 255), AAC (2) */
++	load = ie[4] * 100 / 255;
++	if (load <= data->load_percent) {
++		bgscan_model_load_clear(data);
++		return;
++	}
++
++	os_get_reltime(&now);
++	if (!os_reltime_initialized(&data->busy_since)) {
++		data->busy_since = now;
++		wpa_printf(MSG_DEBUG,
++			   "bgscan model: Current BSS busy (%d %% > %d %%) at level %d",
++			   load, data->load_percent, level);
++		return;
++	}
++
++	os_reltime_sub(&now, &data->busy_since, &age);
++	if (age.sec < data->load_hold || wpa_s->roam_load_triggered)
++		return;
++
++	wpa_s->roam_load_triggered = 1;
++	bgscan_model_event(data, "load", level, load);
++	bgscan_model_scan_now(data, "load-scan");
++}
++
++
++static int bgscan_model_get_params(struct bgscan_model_data *data,
++				   const char *params)
++{
++	const char *pos;
++
++	data->short_interval = atoi(params);
++
++	pos = os_strchr(params, ':');
++	if (pos == NULL)
++		return 0;
++	pos++;
++	data->signal_threshold = atoi(pos);
++	pos = os_strchr(pos, ':');
++	if (pos == NULL) {
++		wpa_printf(MSG_ERROR,
++			   "bgscan model: Missing scan interval for high signal");
++		return -1;
++	}
++	pos++;
++	data->long_interval = atoi(pos);
++
++	pos = os_strchr(pos, ':');
++	if (pos == NULL)
++		return 0;
++	pos++;
++	data->load_percent = atoi(pos);
++	pos = os_strchr(pos, ':');
++	if (pos)
++		data->load_high = atoi(++pos);
++	if (pos)
++		pos = os_strchr(pos, ':');
++	if (pos)
++		data->load_low = atoi(++pos);
++	if (pos)
++		pos = os_strchr(pos, ':');
++	if (pos)
++		data->load_hold = atoi(++pos);
++	if (!pos || data->load_percent <= 0 || data->load_percent > 100 ||
++	    data->load_high > 0 || data->load_low > data->load_high ||
++	    data->load_hold <= 0) {
++		wpa_printf(MSG_ERROR,
++			   "bgscan model: Invalid load trigger (percent:high:low:hold)");
++		return -1;
++	}
++
++	data->load_high_2g4 = data->load_high;
++	data->load_low_2g4 = data->load_low;
++	pos = os_strchr(pos, ':');
++	if (pos == NULL)
++		return 0;
++	data->load_high_2g4 = atoi(++pos);
++	pos = os_strchr(pos, ':');
++	if (pos)
++		data->load_low_2g4 = atoi(++pos);
++	if (!pos || data->load_high_2g4 > 0 ||
++	    data->load_low_2g4 > data->load_high_2g4) {
++		wpa_printf(MSG_ERROR,
++			   "bgscan model: Invalid 2.4 GHz load levels (high:low)");
++		return -1;
++	}
++
++	return 0;
++}
++
++
++static void * bgscan_model_init(struct wpa_supplicant *wpa_s,
++				const char *params,
++				const struct wpa_ssid *ssid)
++{
++	struct bgscan_model_data *data;
++
++	data = os_zalloc(sizeof(*data));
++	if (data == NULL)
++		return NULL;
++	data->wpa_s = wpa_s;
++	data->ssid = ssid;
++	if (bgscan_model_get_params(data, params) < 0) {
++		os_free(data);
++		return NULL;
++	}
++	if (data->short_interval <= 0)
++		data->short_interval = 30;
++	if (data->long_interval <= 0)
++		data->long_interval = 30;
++
++	wpa_printf(MSG_DEBUG,
++		   "bgscan model: Signal strength threshold %d  Short bgscan interval %d  Long bgscan interval %d  Load %d %% between %d and %d dBm for %d s",
++		   data->signal_threshold, data->short_interval,
++		   data->long_interval, data->load_percent, data->load_high,
++		   data->load_low, data->load_hold);
++
++	if (data->signal_threshold &&
++	    wpa_drv_signal_monitor(wpa_s, data->signal_threshold, 4) < 0) {
++		wpa_printf(MSG_ERROR,
++			   "bgscan model: Failed to enable signal strength monitoring");
++	}
++
++	data->scan_interval = data->short_interval;
++	data->max_short_scans = data->long_interval / data->short_interval + 1;
++	if (data->signal_threshold) {
++		struct wpa_signal_info siginfo;
++
++		wpa_s->signal_threshold = data->signal_threshold;
++		/* Poll for signal info to set initial scan interval */
++		if (wpa_drv_signal_poll(wpa_s, &siginfo) == 0 &&
++		    siginfo.data.signal >= data->signal_threshold)
++			data->scan_interval = data->long_interval;
++	}
++	wpa_printf(MSG_DEBUG, "bgscan model: Init scan interval: %d",
++		   data->scan_interval);
++	eloop_register_timeout(data->scan_interval, 0, bgscan_model_timeout,
++			       data, NULL);
++
++	wpa_s->roam_load_triggered = 0;
++	if (data->load_percent)
++		eloop_register_timeout(1, 0, bgscan_model_load_timeout, data,
++				       NULL);
++
++	/*
++	 * This function is called immediately after an association, so it is
++	 * reasonable to assume that a scan was completed recently. This makes
++	 * us skip an immediate new scan in cases where the current signal
++	 * level is below the bgscan threshold.
++	 */
++	os_get_reltime(&data->last_bgscan);
++
++	return data;
++}
++
++
++static void bgscan_model_deinit(void *priv)
++{
++	struct bgscan_model_data *data = priv;
++
++	eloop_cancel_timeout(bgscan_model_timeout, data, NULL);
++	eloop_cancel_timeout(bgscan_model_load_timeout, data, NULL);
++	data->wpa_s->roam_load_triggered = 0;
++	if (data->signal_threshold) {
++		data->wpa_s->signal_threshold = 0;
++		wpa_drv_signal_monitor(data->wpa_s, 0, 0);
++	}
++	os_free(data);
++}
++
++
++static int bgscan_model_notify_scan(void *priv,
++				    struct wpa_scan_results *scan_res)
++{
++	struct bgscan_model_data *data = priv;
++
++	wpa_printf(MSG_DEBUG, "bgscan model: scan result notification");
++
++	/* A channel scan for the load does not restart the scan interval, nor
++	 * does any scan while an immediate one is pending */
++	if (!data->load_scan_inflight && !data->next_reason) {
++		eloop_cancel_timeout(bgscan_model_timeout, data, NULL);
++		eloop_register_timeout(data->scan_interval, 0,
++				       bgscan_model_timeout, data, NULL);
++	}
++	data->load_scan_inflight = 0;
++
++	bgscan_model_check_load(data);
++
++	/* The existing BSS/ESS selection decides on these results */
++	return 0;
++}
++
++
++static void bgscan_model_notify_beacon_loss(void *priv)
++{
++	struct bgscan_model_data *data = priv;
++	struct os_reltime now;
++
++	wpa_printf(MSG_DEBUG, "bgscan model: beacon loss");
++	os_get_reltime(&now);
++	if (now.sec > data->last_bgscan.sec + 1) {
++		bgscan_model_event(data, "beacon-loss",
++				   bgscan_model_level(data->wpa_s), -1);
++		bgscan_model_scan_now(data, "beacon-loss-scan");
++	}
++}
++
++
++static void bgscan_model_notify_signal_change(void *priv, int above,
++					      int current_signal,
++					      int current_noise,
++					      int current_txrate)
++{
++	struct bgscan_model_data *data = priv;
++	int scan = 0;
++	struct os_reltime now;
++
++	if (data->short_interval == data->long_interval ||
++	    data->signal_threshold == 0)
++		return;
++
++	wpa_printf(MSG_DEBUG,
++		   "bgscan model: signal level changed (above=%d current_signal=%d current_noise=%d current_txrate=%d)",
++		   above, current_signal, current_noise, current_txrate);
++	if (data->scan_interval == data->long_interval && !above) {
++		wpa_printf(MSG_DEBUG,
++			   "bgscan model: Start using short bgscan interval");
++		data->scan_interval = data->short_interval;
++		os_get_reltime(&now);
++		if (now.sec > data->last_bgscan.sec + 1 &&
++		    data->short_scan_count <= data->max_short_scans)
++			scan = 1;
++		else if (data->last_bgscan.sec + data->long_interval >
++			 now.sec + data->scan_interval) {
++			eloop_cancel_timeout(bgscan_model_timeout, data, NULL);
++			eloop_register_timeout(data->scan_interval, 0,
++					       bgscan_model_timeout, data,
++					       NULL);
++		}
++	} else if (data->scan_interval == data->short_interval && above) {
++		wpa_printf(MSG_DEBUG,
++			   "bgscan model: Start using long bgscan interval");
++		data->scan_interval = data->long_interval;
++		eloop_cancel_timeout(bgscan_model_timeout, data, NULL);
++		eloop_register_timeout(data->scan_interval, 0,
++				       bgscan_model_timeout, data, NULL);
++	} else if (!above) {
++		/*
++		 * Signal dropped further 4 dB. Request a new scan if we have
++		 * not yet scanned in a while.
++		 */
++		os_get_reltime(&now);
++		if (now.sec > data->last_bgscan.sec + 10)
++			scan = 1;
++	}
++
++	if (scan) {
++		wpa_printf(MSG_DEBUG, "bgscan model: Trigger immediate scan");
++		bgscan_model_scan_now(data, "signal");
++	}
++}
++
++
++const struct bgscan_ops bgscan_model_ops = {
++	.name = "model",
++	.init = bgscan_model_init,
++	.deinit = bgscan_model_deinit,
++	.notify_scan = bgscan_model_notify_scan,
++	.notify_beacon_loss = bgscan_model_notify_beacon_loss,
++	.notify_signal_change = bgscan_model_notify_signal_change,
++};
+diff --git a/wpa_supplicant/defconfig b/wpa_supplicant/defconfig
+index 389ae18..006e4ef 100644
+--- a/wpa_supplicant/defconfig
++++ b/wpa_supplicant/defconfig
+@@ -633,6 +633,10 @@ CONFIG_BGSCAN_SIMPLE=y
+ # channels (experimental)
+ #CONFIG_BGSCAN_LEARN=y
+ 
++# Background scanning modules: model, the simple module plus a load trigger
++# (channel utilization), a roam scan on beacon loss and CTRL-EVENT-ROAM-SCAN
++#CONFIG_BGSCAN_MODEL=y
++
+ # Opportunistic Wireless Encryption (OWE)
+ CONFIG_OWE=y
+ 
+-- 
+2.34.1
+
