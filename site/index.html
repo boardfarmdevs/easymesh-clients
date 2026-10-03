@@ -512,28 +512,36 @@ That is what keeps this step small.</p>
 <h2>Clients that behave like devices</h2>
 <p>The harder questions for an optimizer need clients that are not all alike. Does it stop
 steering a client that keeps refusing? Does it fight a phone that roams by itself? Does it
-leave a 2.4 GHz plug alone? A <em>client model</em> is a named set of behaviours that a lab
-client takes on when a room loads.</p>
+leave a 2.4 GHz plug alone? A <em>client model</em> makes a lab client roam the way a kind of
+device documents that it roams.</p>
 <div class="table-wrap"><table>
-<thead><tr><th>Model</th><th>Resembles</th><th>In short</th></tr></thead>
+<thead><tr><th>Model</th><th>Resembles</th><th>Looks below</th><th>Moves for</th></tr></thead>
 <tbody>
-<tr><td><code>baseline</code></td><td>today's lab client</td><td>never looks around; follows every request</td></tr>
-<tr><td><code>eager-roamer</code></td><td>phones and tablets</td><td>looks for a better access point early; follows steering</td></tr>
-<tr><td><code>sticky</code></td><td>laptops at default settings</td><td>looks late, wants a large margin, accepts only a much better offer</td></tr>
-<tr><td><code>btm-refuser</code></td><td>clients with 802.11v off or broken</td><td>refuses, or ignores, every request</td></tr>
-<tr><td><code>iot-2g4</code></td><td>plugs, cameras, sensors</td><td>2.4 GHz only; never roams while associated</td></tr>
-<tr><td><code>band-loyal</code></td><td>devices that hold on to 5 or 6 GHz</td><td>refuses a move to 2.4 GHz</td></tr>
+<tr><td><code>baseline</code></td><td>today's lab client</td><td>never by itself</td><td>a small, throughput-weighted margin</td></tr>
+<tr><td><code>iphone</code>, <code>ipad</code></td><td>iPhone, iPad</td><td>−70 dBm</td><td>8 dB with traffic, 12 dB idle</td></tr>
+<tr><td><code>mac</code></td><td>Mac with Apple silicon</td><td>−75 dBm</td><td>12 dB</td></tr>
+<tr><td><code>pixel</code></td><td>Google Pixel</td><td>−75 dBm, or −70 dBm on a busy AP</td><td>10 dB</td></tr>
+<tr><td><code>galaxy</code></td><td>Samsung Galaxy</td><td>−75 dBm, or −65 dBm on a busy AP</td><td>10 dB</td></tr>
+<tr><td><code>windows-intel</code></td><td>a Windows laptop with Intel Wi-Fi</td><td>−75 dBm (not published; assumed)</td><td>10 dB (assumed)</td></tr>
+<tr><td><code>linux-iwd</code></td><td>a Linux device running iwd</td><td>−70 dBm (2.4 GHz), −76 dBm (5 GHz)</td><td>iwd's own ranking</td></tr>
 </tbody></table></div>
-<p>A model is data. The same container becomes an eager roamer or a plug when a room loads,
-and goes back afterwards. Part of it is plain supplicant configuration (bands, whether 802.11v
-is advertised, background scanning). The rest, such as refusing a request or wanting a larger
-margin, needs a small patch that turns the supplicant's fixed decisions into options whose
-defaults are today's behaviour.</p>
-<p>These are archetypes. A model resembles a class of devices and says so; it does not
-emulate one phone's firmware. A world that names no model gets <code>baseline</code>
-everywhere and compiles to the same bytes as before. The full proposal, with the sources for
-each value and the checks that prove a model behaves as it says, is
-<a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/docs/proposals/client-models.md">in this repository</a>.</p>
+<p>The values come from the devices' own documentation: Apple's deployment guide, the source of
+the Pixel's Wi-Fi driver, Samsung's published roaming rules, Intel's settings, iwd's manual.
+Each carries its source and how sure it is; what nobody documents is marked as assumed.
+Variants add a 2.4 GHz-only IoT device and clients that refuse, ignore or cannot receive a
+steering request.</p>
+<p>A model is data. One build of wpa_supplicant 2.12, with a few options added whose defaults
+keep today's behaviour, serves every model; the same container becomes an iPhone or a plug when
+a room loads. Only <code>linux-iwd</code> runs a different program, which is its point. Before
+any of it reaches a lab, a bench of two simulated access points and one client checks each
+model: where it starts looking, how much better the new access point is when it moves, and how
+it answers a steering request. The
+<a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/docs/proposals/client-models.md">requirements
+and design</a>, the
+<a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/docs/reference/documented-roaming.md">sources</a>
+and the
+<a href="https://github.com/boardfarmdevs/easymesh-clients/blob/main/docs/project/roaming-test-plan.md">test
+plan</a> are in this repository.</p>
 </section>
 
 <section id="home">

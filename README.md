@@ -41,7 +41,7 @@ what the clients have in common is written down first and, later, shared.
 | Part | What it is |
 | --- | --- |
 | [site/](site) | the explainer site: the labs' Wi-Fi clients, from one container to a room of a hundred |
-| [docs/](docs) | the reference (the clients of each lab, as built) and the proposal (more capable clients, and when to share their code) |
+| [docs/](docs) | the references (the clients of each lab, as built; what devices document about roaming), the proposals (more capable clients; client models, as requirements and design) and the roaming test plan |
 | [pages/](pages) | the site's build; the rest of the Pages workflow is the labs' shared one |
 
 ## Getting started

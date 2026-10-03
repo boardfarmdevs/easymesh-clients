@@ -273,8 +273,8 @@ settings change from using one radio at the same time.
 ## 9. How a client behaves
 
 The RDK and prplMesh clients behave alike, and all 100 of each behave the same. The
-reading of wpa_supplicant 2.10 behind these statements is in the
-[client models proposal](../proposals/client-models.md).
+statements come from wpa_supplicant's source; [documented roaming](documented-roaming.md),
+section 7, has the roaming rules as they are in 2.12, unchanged in substance from 2.10.
 
 | Behaviour | Today |
 | --- | --- |

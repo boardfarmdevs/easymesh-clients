@@ -140,17 +140,23 @@ it would then carry the same actions over another transport.
 
 ## 7. Step 3: models
 
-The [client models proposal](client-models.md) (29 September 2026, moved here from the
-umbrella on 2 October) defines six archetypes and how to build them.
+The [client models proposal](client-models.md) (29 September 2026, revised 3 October as
+requirements and design) names models after kinds of devices, with the values those devices
+document ([documented roaming](../reference/documented-roaming.md)), and a
+[bench test plan](../project/roaming-test-plan.md) checks each one.
 
 | Model | Resembles | In short |
 | --- | --- | --- |
-| `baseline` | today's lab client | never scans by itself; follows every BTM request |
-| `eager-roamer` | phones and tablets | looks for a better access point early; follows steering |
-| `sticky` | laptops at default settings | looks late, needs a large margin, accepts only a much better access point |
-| `btm-refuser` | clients with 802.11v broken or off | refuses or ignores every request |
-| `iot-2g4` | plugs, cameras, sensors | 2.4 GHz only, never roams while associated |
-| `band-loyal` | devices that hold on to 5 or 6 GHz | refuses a move to 2.4 GHz |
+| `baseline` | today's lab client | wpa_supplicant 2.12; never scans by itself; follows every BTM request |
+| `iphone`, `ipad` | iPhone, iPad | look below −70 dBm; move for 8 dB with traffic, 12 dB idle |
+| `mac` | Mac with Apple silicon | look below −75 dBm; move for 12 dB |
+| `pixel` | Google Pixel | look below −75 dBm or on a busy AP; move for 10 dB |
+| `galaxy` | Samsung Galaxy | look below −75 dBm or on a busy AP; move for 10 dB |
+| `windows-intel` | a Windows laptop with Intel Wi-Fi | look below −75 dBm (synthesized); move for 10 dB |
+| `linux-iwd` | a Linux device running iwd | iwd 3.12's own algorithm |
+
+Variants add a 2.4 GHz-only IoT device and clients that refuse, ignore or cannot receive BTM
+requests.
 
 How it fits here:
 
@@ -160,8 +166,8 @@ How it fits here:
 - `em-clients model <client> <name>` is the same resolution, applied by hand.
 - The catalog would live in this repository. That answers the proposal's first open
   question, and both labs then read one catalog.
-- The models need a small supplicant patch, carried by both labs' builds. That patch is
-  the first code worth sharing (section 10).
+- The models need a small patch series against wpa_supplicant 2.12, in one build both labs
+  use. That build is the first code worth sharing (section 10).
 
 ## 8. Step 4: behaviours
 
