@@ -42,15 +42,23 @@ what the clients have in common is written down first and, later, shared.
 | --- | --- |
 | [site/](site) | the explainer site: the labs' Wi-Fi clients, from one container to a room of a hundred |
 | [docs/](docs) | the reference (the clients of each lab, as built) and the proposal (more capable clients, and when to share their code) |
-| [pages/](pages) | the site's build and the labs' shared checks |
+| [pages/](pages) | the site's build; the rest of the Pages workflow is the labs' shared one |
 
 ## Getting started
 
 ```sh
 git clone git@github.com:boardfarmdevs/easymesh-clients.git
 cd easymesh-clients
-python3 pages/check-docs.py                    # the documents' layout and links
-pages/build && python3 pages/finish-site.py    # the site, into dist/site
+pages/build                                    # the site, into dist/site
+```
+
+The documentation check and the site's finishing step are the labs' shared ones, kept in
+the umbrella ([easymesh-labs](https://mesh.vcpe.dev/)) and run by its Pages workflow. From
+this repository's root, with the umbrella checked out next to it:
+
+```sh
+python3 ../easymesh-labs/pages/check-docs.py
+python3 ../easymesh-labs/pages/finish-site.py dist/site
 ```
 
 To see a client, open a shell in a running lab VM and look at one:

@@ -273,8 +273,8 @@ settings change from using one radio at the same time.
 ## 9. How a client behaves
 
 The RDK and prplMesh clients behave alike, and all 100 of each behave the same. The
-reading of wpa_supplicant 2.10 behind these statements is in the client models proposal
-(easymesh-labs, `docs/proposals/client-models.md`).
+reading of wpa_supplicant 2.10 behind these statements is in the
+[client models proposal](../proposals/client-models.md).
 
 | Behaviour | Today |
 | --- | --- |

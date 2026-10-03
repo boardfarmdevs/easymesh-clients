@@ -140,8 +140,8 @@ it would then carry the same actions over another transport.
 
 ## 7. Step 3: models
 
-The client models proposal (29 September 2026, in the umbrella repository as
-`docs/proposals/client-models.md`) defines six archetypes and how to build them.
+The [client models proposal](client-models.md) (29 September 2026, moved here from the
+umbrella on 2 October) defines six archetypes and how to build them.
 
 | Model | Resembles | In short |
 | --- | --- | --- |
@@ -229,8 +229,8 @@ nothing extra.
 ## 12. Open questions
 
 1. **The first actions.** All of section 5, or only `list`, `status`, `ping` and `iperf`.
-2. **The client models proposal.** Move it into this repository, with the umbrella
-   pointing here, or leave it where it is.
+2. **The client models proposal.** *Answered on 2 October 2026: moved into this
+   repository.*
 3. **The record of intent** in the prplMesh lab: add the container keys now, or with
    step 2.
 4. **The Protocol lab's clients.** They are namespaces around real radios. The same
