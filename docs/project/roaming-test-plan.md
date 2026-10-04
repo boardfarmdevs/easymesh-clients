@@ -163,7 +163,7 @@ result without its timeline (`results.json`), and a behaviour card per model
 | E3 The patch series | built; B12 still passes with every new option at its default; hostap's own hwsim tests of BTM, background scanning, roaming and scanning still pass | done, 3 Oct; see the records |
 | E4 The models | B1 to B10 pass for each model, within section 2's bounds; cards written | done, 3 Oct; see the records |
 | E5 iwd | B11 passes | done, 3 Oct |
-| E6 The labs | the shared build in a lab; one model applied by hand to one client in a room; its events in the room's journal | not started (this step changes the labs) |
+| E6 The labs | the shared build in a lab; one model applied by hand to one client in a room; its events in the room's journal; in the RDK lab, a load trigger seen to fire on an access point's beacon-only BSS Load | not started (this step changes the labs) |
 | E7 Real devices (optional) | the Protocol lab's phones and laptops between its two extenders, walked by hand, the same measures taken from captures; the cards gain a measured column | not started |
 
 ## 6. Questions for the implementation lab
@@ -176,7 +176,16 @@ result without its timeline (`results.json`), and a behaviour card per model
    active, because the AP's beacons alone are about ten a second. Patch 0001 counts
    transmitted packets.
 3. Do the RDK and prplMesh access points advertise BSS Load, so B8's behaviour can appear in
-   a room at all? **Open:** it needs the labs (step E6).
+   a room at all? **Found, 3 October, read only:** both do. The RDK lab's access points put
+   the element in their **beacons only**, not in their probe responses (8 and 9 % utilization
+   with one station, in the beacons its clients had cached). The prplMesh lab's hostapd
+   (`bss_load_update_period=10`) puts it in both, with the medium's modelled airtime, which
+   that lab's native-load acceptance check qualifies. The finding showed a defect: the
+   `model` module read the probe response's copy, so it would never have seen an RDK access
+   point's load. It now refreshes the element with a passive scan of its channel and reads
+   the beacon's copy first; Pixel and Galaxy were run again (the records say so). The
+   bench's hostapd puts the element in both frames, so only a room can check the
+   beacon-only case (step E6).
 4. Run the bench in a VM per run, or keep one VM and reload `mac80211_hwsim` between runs?
    **Done so:** one VM, `mac80211_hwsim` reloaded and every namespace rebuilt for each run;
    the full suite ran in three copies of the VM side by side.

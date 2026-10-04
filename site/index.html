@@ -654,6 +654,10 @@ naming the access point it was already on.</li>
 <li><b>The bench caught a mistake of our own.</b> The patched client's <em>accept</em> answer, meant
 to follow the access point's choice, at first did the same. It now takes the access point's
 preferred candidate, and the steering tests of every model that accepts were run again.</li>
+<li><b>A look at a running lab caught another.</b> The RDK lab's access points announce their
+load in their beacons only. The load trigger read the copy in probe responses, so it would
+never have fired there; it now listens for a beacon, and the Pixel and Galaxy models were run
+again. The prplMesh lab's access points announce it in both.</li>
 <li><b>iwd never answers a steering request.</b> It moves, but sends no response: a
 controller waiting for one waits in vain.</li>
 <li><b>hostap's own tests</b> of steering, background scanning, roaming and scanning give the

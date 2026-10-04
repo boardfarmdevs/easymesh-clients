@@ -1,4 +1,4 @@
-From ea8f1ed5df57dfa9b6d0adf3ed1d0eea8b705a5d Mon Sep 17 00:00:00 2001
+From af2d5130dd493df1315ba146f9392199dc9fa7f8 Mon Sep 17 00:00:00 2001
 From: easymesh-clients <noreply@vcpe.dev>
 Date: Sat, 3 Oct 2026 11:27:19 -0700
 Subject: [PATCH 2/3] bgscan model: load trigger, roam scan on beacon loss,
@@ -14,9 +14,9 @@ CTRL-EVENT-ROAM-SCAN events with the reason. CONFIG_BGSCAN_MODEL.
  wpa_supplicant/Makefile       |  10 +
  wpa_supplicant/bgscan.c       |   3 +
  wpa_supplicant/bgscan.h       |   3 +
- wpa_supplicant/bgscan_model.c | 512 ++++++++++++++++++++++++++++++++++
+ wpa_supplicant/bgscan_model.c | 527 ++++++++++++++++++++++++++++++++++
  wpa_supplicant/defconfig      |   4 +
- 5 files changed, 532 insertions(+)
+ 5 files changed, 547 insertions(+)
  create mode 100644 wpa_supplicant/bgscan_model.c
 
 diff --git a/wpa_supplicant/Makefile b/wpa_supplicant/Makefile
@@ -77,10 +77,10 @@ index 4388b4e..5c41c75 100644
  
 diff --git a/wpa_supplicant/bgscan_model.c b/wpa_supplicant/bgscan_model.c
 new file mode 100644
-index 0000000..e976fbe
+index 0000000..ee928b3
 --- /dev/null
 +++ b/wpa_supplicant/bgscan_model.c
-@@ -0,0 +1,512 @@
+@@ -0,0 +1,527 @@
 +/*
 + * WPA Supplicant - background scan and roaming module: model
 + * Copyright (c) 2009-2010, Jouni Malinen <j@w1.fi>
@@ -94,6 +94,8 @@ index 0000000..e976fbe
 + * - a load trigger: while the current BSS is heard between two levels, its
 + *   advertised channel utilization above a percentage for a hold time starts
 + *   a roam scan and lets scan results move the station above roam_trigger;
++ *   the BSS Load element is read from beacons, refreshed by a passive scan of
++ *   the current channel (some APs leave it out of their probe responses);
 + * - a roam scan on beacon loss;
 + * - CTRL-EVENT-ROAM-SCAN events that say why a scan was requested;
 + * - the network's scan_freq, or else the global freq_list, limits its scans.
@@ -182,14 +184,23 @@ index 0000000..e976fbe
 +	int freqs[2];
 +
 +	os_memset(&params, 0, sizeof(params));
-+	params.num_ssids = 1;
-+	params.ssids[0].ssid = data->ssid->ssid;
-+	params.ssids[0].ssid_len = data->ssid->ssid_len;
 +	if (freq) {
++		/*
++		 * The load refresh: a passive scan of the current channel, so a
++		 * beacon is heard. Some APs put the BSS Load element in their
++		 * beacons only, not in their probe responses.
++		 */
 +		freqs[0] = freq;
 +		freqs[1] = 0;
 +		params.freqs = freqs;
-+	} else if (data->ssid->scan_freq) {
++		return wpa_supplicant_trigger_scan(wpa_s, &params, true,
++						   false);
++	}
++
++	params.num_ssids = 1;
++	params.ssids[0].ssid = data->ssid->ssid;
++	params.ssids[0].ssid_len = data->ssid->ssid_len;
++	if (data->ssid->scan_freq) {
 +		params.freqs = data->ssid->scan_freq;
 +	} else {
 +		/* The global freq_list limits these scans as it does others */
@@ -315,7 +326,11 @@ index 0000000..e976fbe
 +		return;
 +
 +	level = bgscan_model_level(wpa_s);
-+	ie = wpa_bss_get_ie(wpa_s->current_bss, WLAN_EID_BSS_LOAD);
++	/* The beacon's element first: some APs leave it out of their probe
++	 * responses, whose elements wpa_bss_get_ie() reads */
++	ie = wpa_bss_get_ie_beacon(wpa_s->current_bss, WLAN_EID_BSS_LOAD);
++	if (!ie)
++		ie = wpa_bss_get_ie(wpa_s->current_bss, WLAN_EID_BSS_LOAD);
 +	if (!bgscan_model_in_load_zone(data, level) || !ie || ie[1] < 5) {
 +		bgscan_model_load_clear(data);
 +		return;

@@ -57,9 +57,11 @@ The simple module's behaviour: scan every `short` seconds below `threshold` dBm 
 module's back-off. Added:
 
 - **A load trigger.** While the current AP is heard between `high` and `low` dBm (on 2.4 GHz
-  between `high_2g4` and `low_2g4`, when given), its channel is scanned every `hold`/2 s to
-  refresh its BSS Load element; channel utilization above `percent` for `hold` seconds starts
-  a roam scan and lets the results move the station above `roam_trigger`.
+  between `high_2g4` and `low_2g4`, when given), its channel is scanned passively every
+  `hold`/2 s, so a beacon refreshes its BSS Load element; channel utilization above `percent`
+  for `hold` seconds starts a roam scan and lets the results move the station above
+  `roam_trigger`. The beacon's element is read first: the RDK lab's access points leave it
+  out of their probe responses.
 - **A scan on beacon loss**, which the simple module does not do (its handler is empty).
   mac80211_hwsim reports no beacon loss, so the bench cannot exercise it.
 - **Its scans are limited** to the network's `scan_freq`, or else the global `freq_list`, as

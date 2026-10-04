@@ -31,6 +31,22 @@
    "WPA_SUPPLICANT_OPTIONS": "defconfig CONFIG_BGSCAN_MODEL=y CONFIG_HT_OVERRIDES=y CONFIG_VHT_OVERRIDES=y CONFIG_HE_OVERRIDES=y",
    "WPA_SUPPLICANT_SHA256": "08e23937e16d0155e55cab2b51f51fbe10d80a1aa91c4e15442645059b737ef6",
    "WPA_SUPPLICANT_VERSION": "2.12"
+  },
+  {
+   "BUILT": "2026-10-04T01:10:57Z",
+   "HOSTAPD_OPTIONS": "defconfig CONFIG_WNM=y CONFIG_TESTING_OPTIONS=y",
+   "HOSTAPD_SHA256": "f43502561c28ba47ab77e18e1a973d07361c68cc8b14178e619bd5796b70eabd",
+   "HOSTAPD_VERSION": "2.12",
+   "IWD_SHA256": "d89a5e45c7180170e19be828f9e944a768c593758094fc57a358d0e7c4cb1a49",
+   "IWD_VERSION": "3.12",
+   "PATCH_SERIES": "0001-Roaming-by-a-fixed-margin-a-margin-while-active-and-.patch 0002-bgscan-model-load-trigger-roam-scan-on-beacon-loss-r.patch 0003-BTM-policy-rules-accept-reject-or-ignore-a-minimum-m.patch",
+   "PATCH_SERIES_SHA256": "5ae4f1d572d57f9162a58fa5c7ab76ad1fbac8acf0314e13b3f138c4f2f54227",
+   "REFERENCE_SHA256": "20df7ae5154b3830355f8ab4269123a87affdea59fe74fe9292a91d0d7e17b2f",
+   "REFERENCE_VERSION": "2.10",
+   "REPOSITORY_COMMIT": "unknown",
+   "WPA_SUPPLICANT_OPTIONS": "defconfig CONFIG_BGSCAN_MODEL=y CONFIG_HT_OVERRIDES=y CONFIG_VHT_OVERRIDES=y CONFIG_HE_OVERRIDES=y",
+   "WPA_SUPPLICANT_SHA256": "08e23937e16d0155e55cab2b51f51fbe10d80a1aa91c4e15442645059b737ef6",
+   "WPA_SUPPLICANT_VERSION": "2.12"
   }
  ],
  "runs": [
@@ -798,7 +814,7 @@
    "verdict": "pass",
    "ping": true,
    "client_records": 12,
-   "associated_at": 0.306
+   "associated_at": 0.381
   },
   {
    "model": "galaxy",
@@ -811,7 +827,7 @@
    "verdict": "pass",
    "ping": true,
    "client_records": 12,
-   "associated_at": 0.312
+   "associated_at": 0.323
   },
   {
    "model": "galaxy",
@@ -824,7 +840,7 @@
    "verdict": "pass",
    "ping": true,
    "client_records": 12,
-   "associated_at": 0.306
+   "associated_at": 0.314
   },
   {
    "model": "galaxy",
@@ -834,10 +850,10 @@
    "binary": "wpa_supplicant",
    "model_hash": "a20ae383264ef0ce",
    "run": "run-1",
-   "look_t": 54.526,
+   "look_t": 54.475,
    "look_level": -77,
    "look_event": "CTRL-EVENT-ROAM-SCAN reason=signal level=-76",
-   "move_t": 54.685,
+   "move_t": 54.63,
    "move_ap1_level": -77,
    "disconnects": 0,
    "bounds": [
@@ -854,10 +870,10 @@
    "binary": "wpa_supplicant",
    "model_hash": "a20ae383264ef0ce",
    "run": "run-2",
-   "look_t": 54.559,
+   "look_t": 54.404,
    "look_level": -77,
    "look_event": "CTRL-EVENT-ROAM-SCAN reason=signal level=-76",
-   "move_t": 54.72,
+   "move_t": 54.568,
    "move_ap1_level": -77,
    "disconnects": 0,
    "bounds": [
@@ -874,10 +890,10 @@
    "binary": "wpa_supplicant",
    "model_hash": "a20ae383264ef0ce",
    "run": "run-3",
-   "look_t": 54.576,
+   "look_t": 54.379,
    "look_level": -77,
    "look_event": "CTRL-EVENT-ROAM-SCAN reason=signal level=-76",
-   "move_t": 54.732,
+   "move_t": 54.539,
    "move_ap1_level": -77,
    "disconnects": 0,
    "bounds": [
@@ -948,9 +964,9 @@
    "run": "run-2",
    "moves": 0,
    "skip_roam": [
-    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-59 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75",
-    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-59 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75",
-    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-59 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75"
+    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-60 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75",
+    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-60 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75",
+    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-60 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75"
    ],
    "verdict": "pass"
   },
@@ -964,9 +980,9 @@
    "run": "run-3",
    "moves": 0,
    "skip_roam": [
-    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-59 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75",
-    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-59 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75",
-    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-59 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75"
+    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-60 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75",
+    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-60 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75",
+    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-60 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75"
    ],
    "verdict": "pass"
   },
@@ -979,11 +995,11 @@
    "model_hash": "a20ae383264ef0ce",
    "run": "run-1",
    "ap1_level": -80,
-   "move_t": 51.94,
+   "move_t": 51.402,
    "decisions": [
-    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-79 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-77 sel_est=39000 reason=margin margin=10 active=0 load=0",
-    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-79 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-72 sel_est=54000 reason=margin margin=10 active=0 load=0",
-    "CTRL-EVENT-DO-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-79 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-67 sel_est=54000 reason=margin margin=10 active=0 load=0"
+    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-80 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-78 sel_est=36000 reason=margin margin=10 active=0 load=0",
+    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-80 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-73 sel_est=51000 reason=margin margin=10 active=0 load=0",
+    "CTRL-EVENT-DO-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-80 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-68 sel_est=54000 reason=margin margin=10 active=0 load=0"
    ],
    "traffic": null,
    "disconnects": 0,
@@ -1005,16 +1021,16 @@
    "model_hash": "a20ae383264ef0ce",
    "run": "run-2",
    "ap1_level": -80,
-   "move_t": 51.971,
+   "move_t": 51.362,
    "decisions": [
-    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-79 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-77 sel_est=39000 reason=margin margin=10 active=0 load=0",
-    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-79 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-72 sel_est=54000 reason=margin margin=10 active=0 load=0",
-    "CTRL-EVENT-DO-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-79 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-67 sel_est=54000 reason=margin margin=10 active=0 load=0"
+    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-80 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-78 sel_est=36000 reason=margin margin=10 active=0 load=0",
+    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-80 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-73 sel_est=51000 reason=margin margin=10 active=0 load=0",
+    "CTRL-EVENT-DO-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-80 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-68 sel_est=54000 reason=margin margin=10 active=0 load=0"
    ],
    "traffic": null,
    "disconnects": 0,
-   "ap2_level": -67,
-   "margin_seen": 13,
+   "ap2_level": -68,
+   "margin_seen": 12,
    "expected_margin": 10,
    "bounds": [
     10,
@@ -1031,16 +1047,16 @@
    "model_hash": "a20ae383264ef0ce",
    "run": "run-3",
    "ap1_level": -80,
-   "move_t": 51.905,
+   "move_t": 51.351,
    "decisions": [
-    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-79 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-77 sel_est=39000 reason=margin margin=10 active=0 load=0",
-    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-79 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-72 sel_est=54000 reason=margin margin=10 active=0 load=0",
-    "CTRL-EVENT-DO-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-79 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-67 sel_est=54000 reason=margin margin=10 active=0 load=0"
+    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-80 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-78 sel_est=36000 reason=margin margin=10 active=0 load=0",
+    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-80 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-73 sel_est=51000 reason=margin margin=10 active=0 load=0",
+    "CTRL-EVENT-DO-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-80 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-68 sel_est=54000 reason=margin margin=10 active=0 load=0"
    ],
    "traffic": null,
    "disconnects": 0,
-   "ap2_level": -67,
-   "margin_seen": 13,
+   "ap2_level": -68,
+   "margin_seen": 12,
    "expected_margin": 10,
    "bounds": [
     10,
@@ -1059,7 +1075,7 @@
    "btm_capable": true,
    "request_reply": "OK",
    "answer": {
-    "t": 8.404,
+    "t": 8.4,
     "status": 0,
     "target": "ap2-5"
    },
@@ -1082,58 +1098,6 @@
    "binary": "wpa_supplicant",
    "model_hash": "a20ae383264ef0ce",
    "run": "run-2",
-   "btm_capable": true,
-   "request_reply": "OK",
-   "answer": {
-    "t": 8.394,
-    "status": 0,
-    "target": "ap2-5"
-   },
-   "moved_to": "ap2-5",
-   "events": [
-    "CTRL-EVENT-BTM-POLICY action=accept target=02:00:00:00:01:00 target_level=-60"
-   ],
-   "predicted": {
-    "answer": 0,
-    "moves": true
-   },
-   "as_predicted": true,
-   "verdict": "pass"
-  },
-  {
-   "model": "galaxy",
-   "test": "B5",
-   "title": "BTM answer",
-   "kind": "conformance",
-   "binary": "wpa_supplicant",
-   "model_hash": "a20ae383264ef0ce",
-   "run": "run-3",
-   "btm_capable": true,
-   "request_reply": "OK",
-   "answer": {
-    "t": 8.399,
-    "status": 0,
-    "target": "ap2-5"
-   },
-   "moved_to": "ap2-5",
-   "events": [
-    "CTRL-EVENT-BTM-POLICY action=accept target=02:00:00:00:01:00 target_level=-60"
-   ],
-   "predicted": {
-    "answer": 0,
-    "moves": true
-   },
-   "as_predicted": true,
-   "verdict": "pass"
-  },
-  {
-   "model": "galaxy",
-   "test": "B5b",
-   "title": "BTM answer, without the abridged bit",
-   "kind": "characterisation",
-   "binary": "wpa_supplicant",
-   "model_hash": "a20ae383264ef0ce",
-   "run": "run-1",
    "btm_capable": true,
    "request_reply": "OK",
    "answer": {
@@ -1150,6 +1114,58 @@
     "moves": true
    },
    "as_predicted": true,
+   "verdict": "pass"
+  },
+  {
+   "model": "galaxy",
+   "test": "B5",
+   "title": "BTM answer",
+   "kind": "conformance",
+   "binary": "wpa_supplicant",
+   "model_hash": "a20ae383264ef0ce",
+   "run": "run-3",
+   "btm_capable": true,
+   "request_reply": "OK",
+   "answer": {
+    "t": 8.397,
+    "status": 0,
+    "target": "ap2-5"
+   },
+   "moved_to": "ap2-5",
+   "events": [
+    "CTRL-EVENT-BTM-POLICY action=accept target=02:00:00:00:01:00 target_level=-60"
+   ],
+   "predicted": {
+    "answer": 0,
+    "moves": true
+   },
+   "as_predicted": true,
+   "verdict": "pass"
+  },
+  {
+   "model": "galaxy",
+   "test": "B5b",
+   "title": "BTM answer, without the abridged bit",
+   "kind": "characterisation",
+   "binary": "wpa_supplicant",
+   "model_hash": "a20ae383264ef0ce",
+   "run": "run-1",
+   "btm_capable": true,
+   "request_reply": "OK",
+   "answer": {
+    "t": 8.358,
+    "status": 0,
+    "target": "ap2-5"
+   },
+   "moved_to": "ap2-5",
+   "events": [
+    "CTRL-EVENT-BTM-POLICY action=accept target=02:00:00:00:01:00 target_level=-60"
+   ],
+   "predicted": {
+    "answer": 0,
+    "moves": true
+   },
+   "as_predicted": true,
    "verdict": "recorded"
   },
   {
@@ -1163,7 +1179,7 @@
    "btm_capable": true,
    "request_reply": "OK",
    "answer": {
-    "t": 8.354,
+    "t": 8.402,
     "status": 0,
     "target": "ap2-5"
    },
@@ -1189,7 +1205,7 @@
    "btm_capable": true,
    "request_reply": "OK",
    "answer": {
-    "t": 8.41,
+    "t": 8.411,
     "status": 0,
     "target": "ap2-5"
    },
@@ -1212,60 +1228,6 @@
    "binary": "wpa_supplicant",
    "model_hash": "a20ae383264ef0ce",
    "run": "run-1",
-   "btm_capable": true,
-   "request_reply": "OK",
-   "answer": {
-    "t": 8.362,
-    "status": 0,
-    "target": "ap2-5"
-   },
-   "moved_to": "ap2-5",
-   "events": [
-    "CTRL-EVENT-BTM-POLICY action=accept target=02:00:00:00:01:00 target_level=-75",
-    "CTRL-EVENT-DO-ROAM cur_bssid=02:00:00:00:01:00 cur_freq=5180 cur_level=-75 cur_est=45000 sel_bssid=02:00:00:00:00:00 sel_freq=5180 sel_level=-65 sel_est=54000 reason=margin margin=10 active=0 load=0"
-   ],
-   "predicted": {
-    "answer": 0,
-    "moves": true
-   },
-   "as_predicted": true,
-   "verdict": "recorded"
-  },
-  {
-   "model": "galaxy",
-   "test": "B6",
-   "title": "BTM to a weaker AP",
-   "kind": "conformance",
-   "binary": "wpa_supplicant",
-   "model_hash": "a20ae383264ef0ce",
-   "run": "run-2",
-   "btm_capable": true,
-   "request_reply": "OK",
-   "answer": {
-    "t": 8.357,
-    "status": 0,
-    "target": "ap2-5"
-   },
-   "moved_to": "ap2-5",
-   "events": [
-    "CTRL-EVENT-BTM-POLICY action=accept target=02:00:00:00:01:00 target_level=-75",
-    "CTRL-EVENT-DO-ROAM cur_bssid=02:00:00:00:01:00 cur_freq=5180 cur_level=-75 cur_est=45000 sel_bssid=02:00:00:00:00:00 sel_freq=5180 sel_level=-65 sel_est=54000 reason=margin margin=10 active=0 load=0"
-   ],
-   "predicted": {
-    "answer": 0,
-    "moves": true
-   },
-   "as_predicted": true,
-   "verdict": "recorded"
-  },
-  {
-   "model": "galaxy",
-   "test": "B6",
-   "title": "BTM to a weaker AP",
-   "kind": "conformance",
-   "binary": "wpa_supplicant",
-   "model_hash": "a20ae383264ef0ce",
-   "run": "run-3",
    "btm_capable": true,
    "request_reply": "OK",
    "answer": {
@@ -1287,6 +1249,60 @@
   },
   {
    "model": "galaxy",
+   "test": "B6",
+   "title": "BTM to a weaker AP",
+   "kind": "conformance",
+   "binary": "wpa_supplicant",
+   "model_hash": "a20ae383264ef0ce",
+   "run": "run-2",
+   "btm_capable": true,
+   "request_reply": "OK",
+   "answer": {
+    "t": 8.405,
+    "status": 0,
+    "target": "ap2-5"
+   },
+   "moved_to": "ap2-5",
+   "events": [
+    "CTRL-EVENT-BTM-POLICY action=accept target=02:00:00:00:01:00 target_level=-75",
+    "CTRL-EVENT-DO-ROAM cur_bssid=02:00:00:00:01:00 cur_freq=5180 cur_level=-75 cur_est=45000 sel_bssid=02:00:00:00:00:00 sel_freq=5180 sel_level=-65 sel_est=54000 reason=margin margin=10 active=0 load=0"
+   ],
+   "predicted": {
+    "answer": 0,
+    "moves": true
+   },
+   "as_predicted": true,
+   "verdict": "recorded"
+  },
+  {
+   "model": "galaxy",
+   "test": "B6",
+   "title": "BTM to a weaker AP",
+   "kind": "conformance",
+   "binary": "wpa_supplicant",
+   "model_hash": "a20ae383264ef0ce",
+   "run": "run-3",
+   "btm_capable": true,
+   "request_reply": "OK",
+   "answer": {
+    "t": 8.36,
+    "status": 0,
+    "target": "ap2-5"
+   },
+   "moved_to": "ap2-5",
+   "events": [
+    "CTRL-EVENT-BTM-POLICY action=accept target=02:00:00:00:01:00 target_level=-75",
+    "CTRL-EVENT-DO-ROAM cur_bssid=02:00:00:00:01:00 cur_freq=5180 cur_level=-75 cur_est=45000 sel_bssid=02:00:00:00:00:00 sel_freq=5180 sel_level=-65 sel_est=54000 reason=margin margin=10 active=0 load=0"
+   ],
+   "predicted": {
+    "answer": 0,
+    "moves": true
+   },
+   "as_predicted": true,
+   "verdict": "recorded"
+  },
+  {
+   "model": "galaxy",
    "test": "B7",
    "title": "Disassociation imminent, no better AP",
    "kind": "characterisation",
@@ -1295,17 +1311,17 @@
    "run": "run-1",
    "request_reply": "OK",
    "answer": {
-    "t": 8.374,
+    "t": 8.377,
     "status": 0,
     "target": "ap2-5"
    },
    "connections": [
     [
-     8.409,
+     8.407,
      "ap2-5"
     ],
     [
-     18.576,
+     18.59,
      "ap1-5"
     ]
    ],
@@ -1322,17 +1338,17 @@
    "run": "run-2",
    "request_reply": "OK",
    "answer": {
-    "t": 8.363,
+    "t": 8.409,
     "status": 0,
     "target": "ap2-5"
    },
    "connections": [
     [
-     8.391,
+     8.437,
      "ap2-5"
     ],
     [
-     18.552,
+     18.604,
      "ap1-5"
     ]
    ],
@@ -1349,7 +1365,7 @@
    "run": "run-3",
    "request_reply": "OK",
    "answer": {
-    "t": 8.36,
+    "t": 8.372,
     "status": 0,
     "target": "ap2-5"
    },
@@ -1359,7 +1375,7 @@
      "ap2-5"
     ],
     [
-     18.561,
+     18.564,
      "ap1-5"
     ]
    ],
@@ -1375,10 +1391,10 @@
    "model_hash": "a20ae383264ef0ce",
    "run": "run-1",
    "load_scans": [
-    "CTRL-EVENT-ROAM-SCAN reason=load level=-71 load=80",
-    "CTRL-EVENT-ROAM-SCAN reason=load-scan level=-71"
+    "CTRL-EVENT-ROAM-SCAN reason=load level=-72 load=80",
+    "CTRL-EVENT-ROAM-SCAN reason=load-scan level=-72"
    ],
-   "move_after_s": 10.9,
+   "move_after_s": 11.1,
    "expects_move": true,
    "verdict": "pass"
   },
@@ -1391,10 +1407,10 @@
    "model_hash": "a20ae383264ef0ce",
    "run": "run-2",
    "load_scans": [
-    "CTRL-EVENT-ROAM-SCAN reason=load level=-71 load=80",
-    "CTRL-EVENT-ROAM-SCAN reason=load-scan level=-71"
+    "CTRL-EVENT-ROAM-SCAN reason=load level=-72 load=80",
+    "CTRL-EVENT-ROAM-SCAN reason=load-scan level=-72"
    ],
-   "move_after_s": 10.9,
+   "move_after_s": 16.1,
    "expects_move": true,
    "verdict": "pass"
   },
@@ -1407,10 +1423,10 @@
    "model_hash": "a20ae383264ef0ce",
    "run": "run-3",
    "load_scans": [
-    "CTRL-EVENT-ROAM-SCAN reason=load level=-71 load=80",
-    "CTRL-EVENT-ROAM-SCAN reason=load-scan level=-71"
+    "CTRL-EVENT-ROAM-SCAN reason=load level=-72 load=80",
+    "CTRL-EVENT-ROAM-SCAN reason=load-scan level=-72"
    ],
-   "move_after_s": 10.9,
+   "move_after_s": 11.1,
    "expects_move": true,
    "verdict": "pass"
   },
@@ -1427,7 +1443,7 @@
    ],
    "connections": [
     [
-     0.348,
+     0.383,
      "ap1-5"
     ]
    ],
@@ -1446,7 +1462,7 @@
    ],
    "connections": [
     [
-     0.391,
+     0.356,
      "ap1-5"
     ]
    ],
@@ -1465,7 +1481,7 @@
    ],
    "connections": [
     [
-     0.366,
+     0.379,
      "ap1-5"
     ]
    ],
@@ -4738,7 +4754,7 @@
    "verdict": "pass",
    "ping": true,
    "client_records": 12,
-   "associated_at": 0.358
+   "associated_at": 0.369
   },
   {
    "model": "pixel",
@@ -4751,7 +4767,7 @@
    "verdict": "pass",
    "ping": true,
    "client_records": 12,
-   "associated_at": 0.3
+   "associated_at": 0.34
   },
   {
    "model": "pixel",
@@ -4764,7 +4780,7 @@
    "verdict": "pass",
    "ping": true,
    "client_records": 12,
-   "associated_at": 0.332
+   "associated_at": 0.331
   },
   {
    "model": "pixel",
@@ -4774,10 +4790,10 @@
    "binary": "wpa_supplicant",
    "model_hash": "ff47fd3072813c5e",
    "run": "run-1",
-   "look_t": 54.643,
+   "look_t": 54.469,
    "look_level": -77,
    "look_event": "CTRL-EVENT-ROAM-SCAN reason=signal level=-76",
-   "move_t": 54.805,
+   "move_t": 54.635,
    "move_ap1_level": -77,
    "disconnects": 0,
    "bounds": [
@@ -4794,10 +4810,10 @@
    "binary": "wpa_supplicant",
    "model_hash": "ff47fd3072813c5e",
    "run": "run-2",
-   "look_t": 54.62,
+   "look_t": 54.383,
    "look_level": -77,
    "look_event": "CTRL-EVENT-ROAM-SCAN reason=signal level=-76",
-   "move_t": 54.779,
+   "move_t": 54.544,
    "move_ap1_level": -77,
    "disconnects": 0,
    "bounds": [
@@ -4814,10 +4830,10 @@
    "binary": "wpa_supplicant",
    "model_hash": "ff47fd3072813c5e",
    "run": "run-3",
-   "look_t": 54.63,
+   "look_t": 54.467,
    "look_level": -77,
    "look_event": "CTRL-EVENT-ROAM-SCAN reason=signal level=-76",
-   "move_t": 54.794,
+   "move_t": 54.628,
    "move_ap1_level": -77,
    "disconnects": 0,
    "bounds": [
@@ -4872,9 +4888,9 @@
    "run": "run-1",
    "moves": 0,
    "skip_roam": [
-    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-59 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75",
-    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-59 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75",
-    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-59 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75"
+    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-60 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75",
+    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-60 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75",
+    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-60 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75"
    ],
    "verdict": "pass"
   },
@@ -4904,9 +4920,9 @@
    "run": "run-3",
    "moves": 0,
    "skip_roam": [
-    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-59 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75",
-    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-59 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75",
-    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-59 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75"
+    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-60 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75",
+    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-60 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75",
+    "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-60 cur_est=54000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-40 sel_est=54000 reason=above_trigger trigger=-75"
    ],
    "verdict": "pass"
   },
@@ -4919,7 +4935,7 @@
    "model_hash": "ff47fd3072813c5e",
    "run": "run-1",
    "ap1_level": -80,
-   "move_t": 51.943,
+   "move_t": 51.863,
    "decisions": [
     "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-79 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-77 sel_est=39000 reason=margin margin=10 active=0 load=0",
     "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-79 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-72 sel_est=54000 reason=margin margin=10 active=0 load=0",
@@ -4945,7 +4961,7 @@
    "model_hash": "ff47fd3072813c5e",
    "run": "run-2",
    "ap1_level": -80,
-   "move_t": 51.948,
+   "move_t": 51.825,
    "decisions": [
     "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-79 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-77 sel_est=39000 reason=margin margin=10 active=0 load=0",
     "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-79 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-72 sel_est=54000 reason=margin margin=10 active=0 load=0",
@@ -4971,7 +4987,7 @@
    "model_hash": "ff47fd3072813c5e",
    "run": "run-3",
    "ap1_level": -80,
-   "move_t": 51.907,
+   "move_t": 51.856,
    "decisions": [
     "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-79 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-77 sel_est=39000 reason=margin margin=10 active=0 load=0",
     "CTRL-EVENT-SKIP-ROAM cur_bssid=02:00:00:00:00:00 cur_freq=5180 cur_level=-79 cur_est=30000 sel_bssid=02:00:00:00:01:00 sel_freq=5180 sel_level=-72 sel_est=54000 reason=margin margin=10 active=0 load=0",
@@ -4999,7 +5015,7 @@
    "btm_capable": true,
    "request_reply": "OK",
    "answer": {
-    "t": 8.46,
+    "t": 8.395,
     "status": 0,
     "target": "ap2-5"
    },
@@ -5025,7 +5041,7 @@
    "btm_capable": true,
    "request_reply": "OK",
    "answer": {
-    "t": 8.397,
+    "t": 8.399,
     "status": 0,
     "target": "ap2-5"
    },
@@ -5048,6 +5064,32 @@
    "binary": "wpa_supplicant",
    "model_hash": "ff47fd3072813c5e",
    "run": "run-3",
+   "btm_capable": true,
+   "request_reply": "OK",
+   "answer": {
+    "t": 8.396,
+    "status": 0,
+    "target": "ap2-5"
+   },
+   "moved_to": "ap2-5",
+   "events": [
+    "CTRL-EVENT-BTM-POLICY action=accept target=02:00:00:00:01:00 target_level=-60"
+   ],
+   "predicted": {
+    "answer": 0,
+    "moves": true
+   },
+   "as_predicted": true,
+   "verdict": "pass"
+  },
+  {
+   "model": "pixel",
+   "test": "B5b",
+   "title": "BTM answer, without the abridged bit",
+   "kind": "characterisation",
+   "binary": "wpa_supplicant",
+   "model_hash": "ff47fd3072813c5e",
+   "run": "run-1",
    "btm_capable": true,
    "request_reply": "OK",
    "answer": {
@@ -5064,32 +5106,6 @@
     "moves": true
    },
    "as_predicted": true,
-   "verdict": "pass"
-  },
-  {
-   "model": "pixel",
-   "test": "B5b",
-   "title": "BTM answer, without the abridged bit",
-   "kind": "characterisation",
-   "binary": "wpa_supplicant",
-   "model_hash": "ff47fd3072813c5e",
-   "run": "run-1",
-   "btm_capable": true,
-   "request_reply": "OK",
-   "answer": {
-    "t": 8.404,
-    "status": 0,
-    "target": "ap2-5"
-   },
-   "moved_to": "ap2-5",
-   "events": [
-    "CTRL-EVENT-BTM-POLICY action=accept target=02:00:00:00:01:00 target_level=-60"
-   ],
-   "predicted": {
-    "answer": 0,
-    "moves": true
-   },
-   "as_predicted": true,
    "verdict": "recorded"
   },
   {
@@ -5103,7 +5119,7 @@
    "btm_capable": true,
    "request_reply": "OK",
    "answer": {
-    "t": 8.422,
+    "t": 8.395,
     "status": 0,
     "target": "ap2-5"
    },
@@ -5129,7 +5145,7 @@
    "btm_capable": true,
    "request_reply": "OK",
    "answer": {
-    "t": 8.41,
+    "t": 8.39,
     "status": 0,
     "target": "ap2-5"
    },
@@ -5155,7 +5171,7 @@
    "btm_capable": true,
    "request_reply": "OK",
    "answer": {
-    "t": 8.416,
+    "t": 8.389,
     "status": 7,
     "target": null
    },
@@ -5181,7 +5197,7 @@
    "btm_capable": true,
    "request_reply": "OK",
    "answer": {
-    "t": 8.398,
+    "t": 8.4,
     "status": 7,
     "target": null
    },
@@ -5207,7 +5223,7 @@
    "btm_capable": true,
    "request_reply": "OK",
    "answer": {
-    "t": 8.411,
+    "t": 8.421,
     "status": 7,
     "target": null
    },
@@ -5232,17 +5248,17 @@
    "run": "run-1",
    "request_reply": "OK",
    "answer": {
-    "t": 8.409,
+    "t": 8.397,
     "status": 0,
     "target": "00:00:00:00:00:00"
    },
    "connections": [
     [
-     18.885,
+     18.858,
      "ap2-5"
     ],
     [
-     29.044,
+     29.018,
      "ap1-5"
     ]
    ],
@@ -5259,17 +5275,17 @@
    "run": "run-2",
    "request_reply": "OK",
    "answer": {
-    "t": 8.413,
+    "t": 8.384,
     "status": 0,
     "target": "00:00:00:00:00:00"
    },
    "connections": [
     [
-     18.876,
+     18.852,
      "ap2-5"
     ],
     [
-     29.039,
+     29.012,
      "ap1-5"
     ]
    ],
@@ -5286,17 +5302,17 @@
    "run": "run-3",
    "request_reply": "OK",
    "answer": {
-    "t": 8.419,
+    "t": 8.407,
     "status": 0,
     "target": "00:00:00:00:00:00"
    },
    "connections": [
     [
-     18.883,
+     18.868,
      "ap2-5"
     ],
     [
-     29.045,
+     29.025,
      "ap1-5"
     ]
    ],
@@ -5312,10 +5328,10 @@
    "model_hash": "ff47fd3072813c5e",
    "run": "run-1",
    "load_scans": [
-    "CTRL-EVENT-ROAM-SCAN reason=load level=-71 load=80",
-    "CTRL-EVENT-ROAM-SCAN reason=load-scan level=-71"
+    "CTRL-EVENT-ROAM-SCAN reason=load level=-72 load=80",
+    "CTRL-EVENT-ROAM-SCAN reason=load-scan level=-72"
    ],
-   "move_after_s": 15.9,
+   "move_after_s": 11.1,
    "expects_move": true,
    "verdict": "pass"
   },
@@ -5328,10 +5344,10 @@
    "model_hash": "ff47fd3072813c5e",
    "run": "run-2",
    "load_scans": [
-    "CTRL-EVENT-ROAM-SCAN reason=load level=-71 load=80",
-    "CTRL-EVENT-ROAM-SCAN reason=load-scan level=-71"
+    "CTRL-EVENT-ROAM-SCAN reason=load level=-72 load=80",
+    "CTRL-EVENT-ROAM-SCAN reason=load-scan level=-72"
    ],
-   "move_after_s": 15.9,
+   "move_after_s": 16.1,
    "expects_move": true,
    "verdict": "pass"
   },
@@ -5347,7 +5363,7 @@
     "CTRL-EVENT-ROAM-SCAN reason=load level=-71 load=80",
     "CTRL-EVENT-ROAM-SCAN reason=load-scan level=-71"
    ],
-   "move_after_s": 15.9,
+   "move_after_s": 11.1,
    "expects_move": true,
    "verdict": "pass"
   },
@@ -5364,7 +5380,7 @@
    ],
    "connections": [
     [
-     0.37,
+     0.405,
      "ap1-5"
     ]
    ],
@@ -5402,7 +5418,7 @@
    ],
    "connections": [
     [
-     0.39,
+     0.364,
      "ap1-5"
     ]
    ],

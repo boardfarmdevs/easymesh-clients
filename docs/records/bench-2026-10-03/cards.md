@@ -20,15 +20,15 @@ Resembles Samsung Galaxy S and Note since the S8, Android. Model file hash `a20a
 
 | Test | The model says | The bench measured | Result |
 | --- | --- | --- | --- |
-| B0 Bench sanity | associates, passes traffic | associated in 0.3 s, 0.3 s, 0.3 s; the server answered | pass 3/3 |
+| B0 Bench sanity | associates, passes traffic | associated in 0.4 s, 0.3 s, 0.3 s; the server answered | pass 3/3 |
 | B1 Look level | looks below −75 dBm | looked at −77 dBm, −77 dBm, −77 dBm (bounds −85 to −74); moved with AP1 at −77 dBm, −77 dBm, −77 dBm | pass 3/3 |
 | B2 Stays above the trigger | stays above its trigger | 0, 0, 0 moves in 120 s with three scans | pass 3/3 |
-| B3 Margin, idle | moves for 10 dB | moved at 13 dB, 13 dB, 13 dB (bounds 10 to 16) | pass 3/3 |
+| B3 Margin, idle | moves for 10 dB | moved at 13 dB, 12 dB, 12 dB (bounds 10 to 16) | pass 3/3 |
 | B5 BTM answer | accept | status 0, target AP2; moved to AP2 (as its policy predicts) | pass 3/3 |
 | B5b BTM answer, without the abridged bit | accept | status 0, target AP2; moved to AP2 (as its policy predicts) | recorded (3) |
 | B6 BTM to a weaker AP | accept | status 0, target AP2; moved to AP2 (as its policy predicts) | recorded (3) |
 | B7 Disassociation imminent, no better AP | not documented | status 0, target AP2; then associated to AP2, then AP1; 0 disconnection(s) | recorded (3) |
-| B8 Load trigger | looks when over 70 % busy at −65 to −75 dBm | looked for load and moved after 10.9 s, 10.9 s, 10.9 s | pass 3/3 |
+| B8 Load trigger | looks when over 70 % busy at −65 to −75 dBm | looked for load and moved after 11.1 s, 16.1 s, 11.1 s | pass 3/3 |
 | B9 Bands | bands 2.4, 5, 6 | on 5180 MHz | recorded (3) |
 | B10 No ping-pong | margin 10 dB | 0, 0, 0 moves in 10 min | pass 3/3 |
 
@@ -150,7 +150,7 @@ Resembles Google Pixel 6 to 9, Android. Model file hash `ff47fd3072813c5e`, clie
 | B5b BTM answer, without the abridged bit | accept, minimum margin 0 dB | status 0, target AP2; moved to AP2 (as its policy predicts) | recorded (3) |
 | B6 BTM to a weaker AP | accept, minimum margin 0 dB | status 7, no target; stayed (as its policy predicts) | pass 3/3 |
 | B7 Disassociation imminent, no better AP | not documented | status 0, no target; then associated to AP2, then AP1; 1 disconnection(s) | recorded (3) |
-| B8 Load trigger | looks when over 70 % busy at −70 to −75 dBm | looked for load and moved after 15.9 s, 15.9 s, 15.9 s | pass 3/3 |
+| B8 Load trigger | looks when over 70 % busy at −70 to −75 dBm | looked for load and moved after 11.1 s, 16.1 s, 11.1 s | pass 3/3 |
 | B9 Bands | bands 2.4, 5, 6 | on 5180 MHz | recorded (3) |
 | B10 No ping-pong | margin 10 dB | 0, 0, 0 moves in 10 min | pass 3/3 |
 

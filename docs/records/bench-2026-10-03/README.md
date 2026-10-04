@@ -15,7 +15,7 @@ RDK lab's 2.10 build.
 
 | Part | What |
 | --- | --- |
-| Client | wpa_supplicant 2.12 (tarball SHA-256 `08e23937…737ef6`) with the three patches of [supplicant/patches](../../../supplicant/patches/), `defconfig` and `CONFIG_BGSCAN_MODEL`, `CONFIG_HT_OVERRIDES`, `CONFIG_VHT_OVERRIDES`, `CONFIG_HE_OVERRIDES`. Two builds: the series as first written (SHA-256 `7ab8cd46…e29e`), and the series as committed, with *accept* fixed (`05c46e59…9e3e`), which ran the 84 runs that replaced those of the *accept* models' B5 to B7 |
+| Client | wpa_supplicant 2.12 (tarball SHA-256 `08e23937…737ef6`) with the three patches of [supplicant/patches](../../../supplicant/patches/), `defconfig` and `CONFIG_BGSCAN_MODEL`, `CONFIG_HT_OVERRIDES`, `CONFIG_VHT_OVERRIDES`, `CONFIG_HE_OVERRIDES`. Three builds of the series, each run recording which: as first written (SHA-256 `7ab8cd46…e29e`, 315 runs); with *accept* fixed (`05c46e59…9e3e`, 60 runs: B5 to B7 of the five Windows models); and as committed, with the load refresh fixed too (`5ae4f1d5…4227`, 66 runs: every Pixel and Galaxy run). Each fix was followed by a new run of every test that reaches its code |
 | Reference | the RDK lab's wpa_supplicant 2.10 (`20df7ae5…7b2f`) with its hidden-BSS patch and its configuration, rebuilt |
 | iwd | iwd 3.12 (`d89a5e45…1a49`) |
 | Access points | hostapd 2.12 (`f4350256…eabd`), `defconfig`, `CONFIG_WNM`, `CONFIG_TESTING_OPTIONS`; [the profile](../../../supplicant/README.md#the-benchs-access-point-profile) |
@@ -68,7 +68,7 @@ same outcomes as the RDK lab's 2.10 build in B0, B1, B2, B3 and B5
   to AP2 at once. iwd looked at −78 dBm for its −76 dBm threshold and moved 5 s later, when
   its roam timer fired.
 - **Margins hold within the scan cadence.** In B3 every model moved 1 to 5 dB over its
-  margin (33 runs: +1 in 13, +2 in 1, +3 in 18, +5 in 1), the step being the 5 dB AP2 rises
+  margin (33 runs: +1 in 13, +2 in 3, +3 in 16, +5 in 1), the step being the 5 dB AP2 rises
   between two scans 10 s apart. With traffic (B4) the iPhone and iPad models moved at 13 dB
   for their 8 dB margin, their client's view of the gap being 1 dB smaller than the set one
   and the next scan 5 dB later.
@@ -79,7 +79,8 @@ same outcomes as the RDK lab's 2.10 build in B0, B1, B2, B3 and B5
   for that rule).
 - **No ping-pong:** 0 moves in all 33 ten-minute runs of B10.
 - **Load:** `pixel` and `galaxy` started a roam scan for load (`reason=load`, 80 % advertised)
-  and moved after 15.9 s and 10.9 s, the same in all three runs; `mac`, the control,
+  and moved 11.1, 16.1 and 11.1 s after the walk put them in their load zone, the steps
+  being the 10 s hold and the 5 s between two refreshes of the element; `mac`, the control,
   stayed.
 - **Steering requests.** With the Abridged bit (B5) every client under *rules* or *accept*
   followed; `+btm-refuser` answered status 1, `+btm-ignorer` and `+no-11v` sent
@@ -99,18 +100,23 @@ same outcomes as the RDK lab's 2.10 build in B0, B1, B2, B3 and B5
   takes 15 to 30 s on `mac80211_hwsim`, so scans are limited to the bench's two channels;
   and an idle client receives about ten beacons a second, so activity counts transmitted
   packets only.
-- **A defect of the patch series, found and fixed.** B5b showed *accept* doing what *rules*
-  does without the Abridged bit: it skipped the roaming rules but kept 2.12's own choice,
-  and so named the current AP. Patch 0003 now takes the AP's most preferred listed candidate.
-  The 84 runs of B5, B5b, B6 and B7 of the seven *accept* models were run again with the
-  fixed build and replace the first ones; no other test reaches the changed code, which runs
-  only under `btm_policy=1` while a request is handled.
+- **Two defects of the patch series, found and fixed.** B5b showed *accept* doing what
+  *rules* does without the Abridged bit: it skipped the roaming rules but kept 2.12's own
+  choice, and so named the current AP. Patch 0003 now takes the AP's most preferred listed
+  candidate; the B5 to B7 runs of the seven *accept* models were run again (that code runs
+  only under `btm_policy=1` while a request is handled). Then a read-only look at the RDK
+  lab showed its access points put the BSS Load element in their beacons only, while the
+  `model` module read the probe response's copy, from an active scan: no RDK access point's
+  load would ever have been seen. The module now refreshes the element with a passive scan
+  of its channel and reads the beacon's copy first; every Pixel and Galaxy run (the only
+  models with a load trigger) was run again. The bench's hostapd puts the element in both
+  frames, so the beacon-only case is left for a room (the test plan's step E6).
 
 ## hostap's own tests
 
 hostap's hwsim tests of BSS Transition Management, background scanning, roaming, scanning
-and configuration, with both builds of the series: 155 passed, 4 skipped, 1 failed, **the
-same, test by test, with and without the patches** ([every test](hostap-tests.md)). The one
+and configuration, with each of the three builds of the series: 155 passed, 4 skipped, 1
+failed, **the same, test by test, with and without the patches** ([every test](hostap-tests.md)). The one
 failure belongs to the VM.
 
 ## How these were made
@@ -118,8 +124,12 @@ failure belongs to the VM.
 ```sh
 python3 bench/bench.py --out /root/bench-runs --resume suite --models <the VM's models>
 python3 bench/bench.py --out /root/bench-runs --resume reference
-python3 bench/report.py vm1.jsonl vm2.jsonl vm3.jsonl vm4.jsonl vm5.jsonl --out docs/records/bench-2026-10-03
+python3 bench/bench.py --out /root/bench-rerun suite --models <models> --tests <tests>   # after each fix
+python3 bench/report.py <the suites' results.jsonl> <the reruns' results.jsonl> --out docs/records/bench-2026-10-03
 ```
+
+The report keeps one result per model, test and run; a rerun's result, given later, replaces
+the earlier one.
 
 Two things went wrong while running and are not in these results: on one VM, a stopped
 suite's shell started the next command while the new suite ran, so two benches shared one

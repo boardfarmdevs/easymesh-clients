@@ -1,4 +1,4 @@
-From 2c2a239434704df1c93b12bd009252c165783255 Mon Sep 17 00:00:00 2001
+From 120ae482d56e93f9b9e895fdbb85e9fa6de6e1ee Mon Sep 17 00:00:00 2001
 From: easymesh-clients <noreply@vcpe.dev>
 Date: Sat, 3 Oct 2026 11:27:56 -0700
 Subject: [PATCH 3/3] BTM policy: rules, accept, reject or ignore; a minimum

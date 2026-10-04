@@ -8,16 +8,16 @@
 The question: do the client-model patches change anything hostap's own tests check, with
 every new option at its default? hostap's hwsim test suite is in its git tree, not in the
 release tarballs, so it ran from the `hostap_2_12` tag (831364b, the release's version
-commit) three times: with the three patches as first written, with the patches as committed
-(the *accept* policy fixed; see [the results](README.md)), each with `CONFIG_BGSCAN_MODEL=y`
-added to the suite's own build configuration, and unpatched. The patches apply to the tag as
-they do to the tarball. Each build used the suite's `build.sh` and example configurations
+commit) four times: with each of the three builds of the patches (as first written, with
+the *accept* policy fixed, and as committed with the load refresh fixed too; see
+[the results](README.md)), each with `CONFIG_BGSCAN_MODEL=y` added to the suite's own build
+configuration, and unpatched. The patches apply to the tag as they do to the tarball. Each build used the suite's `build.sh` and example configurations
 (which include `CONFIG_TESTING_OPTIONS` and MBO). The modules that cover what the patches
 touch:
 `test_wnm.py` (BSS Transition Management), `test_bgscan.py`, `test_ap_roam.py`,
 `test_scan.py` and `test_wpas_config.py`.
 
-**Result:** 155 passed, 4 skipped, 1 failed, **the same, test by test, with both builds of
+**Result:** 155 passed, 4 skipped, 1 failed, **the same, test by test, with every build of
 the patches and without them**. The one failure, `scan_chan_switch` ("Channel switch
 completed event not seen"), fails the same way on the unpatched build: it belongs to the VM,
 not to the patches. Two tests were skipped for want of `tshark` (`scan_random_mac`, `scan_dfs`) and two because they run
@@ -41,7 +41,7 @@ runner in the test VM's checkout: a permission error tolerated where it writes
 
 ## Every test
 
-| Test | Patched (both builds) | Unpatched |
+| Test | Patched (every build) | Unpatched |
 | --- | --- | --- |
 | `ap_roam_during_scan` | pass | pass |
 | `ap_roam_open` | pass | pass |
